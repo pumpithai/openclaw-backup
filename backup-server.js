@@ -38,21 +38,38 @@ function saveConfig() {
 function cleanupBackups() {
     if (config.maxBackups <= 0) return;
     
-    const files = fs.readdirSync(BACKUP_DIR)
+    // Get all auto backups sorted by time
+    const autoFiles = fs.readdirSync(BACKUP_DIR)
         .filter(f => f.endsWith('.tar.gz'))
-        .map(f => ({
-            name: f,
-            path: path.join(BACKUP_DIR, f),
-            time: fs.statSync(path.join(BACKUP_DIR, f)).mtime.getTime()
-        }))
+        .map(f => {
+            const metaPath = path.join(BACKUP_DIR, f.replace('.tar.gz', '.json'));
+            let type = 'manual';
+            try {
+                if (fs.existsSync(metaPath)) {
+                    const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+                    type = meta.type || 'manual';
+                }
+            } catch (e) {}
+            return {
+                name: f,
+                path: path.join(BACKUP_DIR, f),
+                metaPath,
+                type,
+                time: fs.statSync(path.join(BACKUP_DIR, f)).mtime.getTime()
+            };
+        })
+        .filter(f => f.type === 'auto')
         .sort((a, b) => b.time - a.time);
     
-    if (files.length > config.maxBackups) {
-        const toDelete = files.slice(config.maxBackups);
+    if (autoFiles.length > config.maxBackups) {
+        const toDelete = autoFiles.slice(config.maxBackups);
         toDelete.forEach(f => {
             try {
                 fs.unlinkSync(f.path);
-                console.log('Deleted old backup:', f.name);
+                if (fs.existsSync(f.metaPath)) {
+                    fs.unlinkSync(f.metaPath);
+                }
+                console.log('Deleted auto backup:', f.name);
             } catch (e) {
                 console.error('Failed to delete:', f.name, e.message);
             }
@@ -125,7 +142,7 @@ function formatSize(bytes) {
 }
 
 // Create backup
-async function createBackup() {
+async function createBackup(type = 'manual') {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
     const backupName = `openclaw_backup_${timestamp}`;
     const backupPath = path.join(BACKUP_DIR, backupName);
@@ -187,8 +204,14 @@ async function createBackup() {
     // Clean up temp folder
     fs.rmSync(backupPath, { recursive: true });
     
-    // Cleanup old backups
-    cleanupBackups();
+    // Save backup metadata
+    const metaPath = path.join(BACKUP_DIR, `${backupName}.json`);
+    fs.writeFileSync(metaPath, JSON.stringify({ type, created: new Date().toISOString() }));
+    
+    // Cleanup old backups (only auto)
+    if (type === 'auto') {
+        cleanupBackups();
+    }
     
     return `${backupName}.tar.gz`;
 }
@@ -462,9 +485,14 @@ const server = http.createServer(async (req, res) => {
         
         // POST /api/backup/create
         if (req.method === 'POST' && pathname === '/api/backup/create') {
-            const filename = await createBackup();
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ success: true, filename }));
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                const { type } = JSON.parse(body || '{}');
+                const filename = await createBackup(type || 'manual');
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, filename }));
+            });
             return;
         }
         
