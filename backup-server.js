@@ -341,6 +341,23 @@ async function restoreBackup(filename) {
             copyDir(cronSrc, cronDest);
         }
         
+        // Restore skills
+        restoreStatus.message = 'Restoring skills...';
+        const skillsSrc = path.join(extractedDir, 'skills');
+        const skillsDest = path.join(OPENCLAW_DIR, 'skills');
+        if (fs.existsSync(skillsSrc)) {
+            fs.mkdirSync(skillsDest, { recursive: true });
+            copyDir(skillsSrc, skillsDest);
+        }
+        
+        // Restore workspace skills
+        const wsSkillsSrc = path.join(extractedDir, 'workspace_skills');
+        const wsSkillsDest = path.join(OPENCLAW_DIR, 'workspace/skills');
+        if (fs.existsSync(wsSkillsSrc)) {
+            fs.mkdirSync(wsSkillsDest, { recursive: true });
+            copyDir(wsSkillsSrc, wsSkillsDest);
+        }
+        
         // Clean up temp
         fs.rmSync(tempDir, { recursive: true });
         
@@ -353,22 +370,6 @@ async function restoreBackup(filename) {
         restoreStatus.message = 'Error: ' + err.message;
         restoreStatus.inProgress = false;
         throw err;
-    }
-    
-    // Restore skills
-    const skillsSrc = path.join(extractedDir, 'skills');
-    const skillsDest = path.join(OPENCLAW_DIR, 'skills');
-    if (fs.existsSync(skillsSrc)) {
-        fs.mkdirSync(skillsDest, { recursive: true });
-        copyDir(skillsSrc, skillsDest);
-    }
-    
-    // Restore workspace skills
-    const wsSkillsSrc = path.join(extractedDir, 'workspace_skills');
-    const wsSkillsDest = path.join(OPENCLAW_DIR, 'workspace/skills');
-    if (fs.existsSync(wsSkillsSrc)) {
-        fs.mkdirSync(wsSkillsDest, { recursive: true });
-        copyDir(wsSkillsSrc, wsSkillsDest);
     }
     
     // Restore gateway service
