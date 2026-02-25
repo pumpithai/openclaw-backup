@@ -13,6 +13,16 @@ const CRON_DIR = process.env.CRON_DIR || path.join(HOME_DIR, '.openclaw/cron');
 const OPENCLAW_DIR = path.join(HOME_DIR, '.openclaw');
 const PORT = process.env.PORT || 3847;
 
+// Restore status tracking
+let restoreStatus = {
+    inProgress: false,
+    filename: '',
+    progress: 0,
+    message: 'Idle',
+    completed: false,
+    error: null
+};
+
 // Ensure backup directory exists
 fs.mkdirSync(BACKUP_DIR, { recursive: true });
 
@@ -153,69 +163,109 @@ function copyDir(src, dest, exclude = []) {
 
 // Restore backup
 async function restoreBackup(filename) {
+    // Reset status
+    restoreStatus = {
+        inProgress: true,
+        filename: filename,
+        progress: 0,
+        message: 'Starting restore...',
+        completed: false,
+        error: null
+    };
+    
     const tarPath = path.join(BACKUP_DIR, filename);
     if (!fs.existsSync(tarPath)) {
+        restoreStatus = { ...restoreStatus, inProgress: false, error: 'Backup file not found', message: 'Error: File not found' };
         throw new Error('Backup file not found');
     }
     
-    // Extract to temp
-    const tempDir = path.join(BACKUP_DIR, 'temp_restore_' + Date.now());
-    fs.mkdirSync(tempDir, { recursive: true });
-    
-    await execPromise(`tar -xzf "${tarPath}" -C "${tempDir}"`);
-    
-    // Find extracted folder
-    const items = fs.readdirSync(tempDir);
-    const extractedDir = path.join(tempDir, items[0]);
-    
-    // Restore config
-    const configSrc = path.join(extractedDir, 'openclaw.json');
-    const configDest = path.join(OPENCLAW_DIR, 'openclaw.json');
-    if (fs.existsSync(configSrc)) {
-        fs.copyFileSync(configSrc, configDest);
-    }
-    
-    // Restore workspace
-    const workspaceSrc = path.join(extractedDir, 'workspace');
-    const workspaceDest = path.join(OPENCLAW_DIR, 'workspace');
-    if (fs.existsSync(workspaceSrc)) {
-        if (fs.existsSync(workspaceDest)) {
-            fs.rmSync(workspaceDest, { recursive: true });
+    try {
+        // Extract to temp
+        restoreStatus.message = 'Extracting backup...';
+        restoreStatus.progress = 10;
+        const tempDir = path.join(BACKUP_DIR, 'temp_restore_' + Date.now());
+        fs.mkdirSync(tempDir, { recursive: true });
+        
+        await execPromise(`tar -xzf "${tarPath}" -C "${tempDir}"`);
+        
+        // Find extracted folder
+        const items = fs.readdirSync(tempDir);
+        const extractedDir = path.join(tempDir, items[0]);
+        
+        // Restore config
+        restoreStatus.message = 'Restoring config...';
+        restoreStatus.progress = 20;
+        const configSrc = path.join(extractedDir, 'openclaw.json');
+        const configDest = path.join(OPENCLAW_DIR, 'openclaw.json');
+        if (fs.existsSync(configSrc)) {
+            fs.copyFileSync(configSrc, configDest);
         }
-        fs.mkdirSync(workspaceDest, { recursive: true });
-        copyDir(workspaceSrc, workspaceDest, ['.git']);
-    }
-    
-    // Restore credentials
-    const credsSrc = path.join(extractedDir, 'credentials');
-    const credsDest = path.join(OPENCLAW_DIR, 'credentials');
-    if (fs.existsSync(credsSrc)) {
-        fs.mkdirSync(credsDest, { recursive: true });
-        copyDir(credsSrc, credsDest);
-    }
-    
-    // Restore agents
-    const agentsSrc = path.join(extractedDir, 'agents');
-    const agentsDest = path.join(OPENCLAW_DIR, 'agents');
-    if (fs.existsSync(agentsSrc)) {
-        fs.mkdirSync(agentsDest, { recursive: true });
-        copyDir(agentsSrc, agentsDest);
-    }
-    
-    // Restore telegram
-    const telegramSrc = path.join(extractedDir, 'telegram');
-    const telegramDest = path.join(OPENCLAW_DIR, 'telegram');
-    if (fs.existsSync(telegramSrc)) {
-        fs.mkdirSync(telegramDest, { recursive: true });
-        copyDir(telegramSrc, telegramDest);
-    }
-    
-    // Restore cron
-    const cronSrc = path.join(extractedDir, 'cron');
-    const cronDest = path.join(OPENCLAW_DIR, 'cron');
-    if (fs.existsSync(cronSrc)) {
-        fs.mkdirSync(cronDest, { recursive: true });
-        copyDir(cronSrc, cronDest);
+        
+        // Restore workspace
+        restoreStatus.message = 'Restoring workspace...';
+        restoreStatus.progress = 40;
+        const workspaceSrc = path.join(extractedDir, 'workspace');
+        const workspaceDest = path.join(OPENCLAW_DIR, 'workspace');
+        if (fs.existsSync(workspaceSrc)) {
+            if (fs.existsSync(workspaceDest)) {
+                fs.rmSync(workspaceDest, { recursive: true });
+            }
+            fs.mkdirSync(workspaceDest, { recursive: true });
+            copyDir(workspaceSrc, workspaceDest, ['.git']);
+        }
+        
+        // Restore credentials
+        restoreStatus.message = 'Restoring credentials...';
+        restoreStatus.progress = 55;
+        const credsSrc = path.join(extractedDir, 'credentials');
+        const credsDest = path.join(OPENCLAW_DIR, 'credentials');
+        if (fs.existsSync(credsSrc)) {
+            fs.mkdirSync(credsDest, { recursive: true });
+            copyDir(credsSrc, credsDest);
+        }
+        
+        // Restore agents
+        restoreStatus.message = 'Restoring agents...';
+        restoreStatus.progress = 70;
+        const agentsSrc = path.join(extractedDir, 'agents');
+        const agentsDest = path.join(OPENCLAW_DIR, 'agents');
+        if (fs.existsSync(agentsSrc)) {
+            fs.mkdirSync(agentsDest, { recursive: true });
+            copyDir(agentsSrc, agentsDest);
+        }
+        
+        // Restore telegram
+        restoreStatus.message = 'Restoring telegram...';
+        restoreStatus.progress = 85;
+        const telegramSrc = path.join(extractedDir, 'telegram');
+        const telegramDest = path.join(OPENCLAW_DIR, 'telegram');
+        if (fs.existsSync(telegramSrc)) {
+            fs.mkdirSync(telegramDest, { recursive: true });
+            copyDir(telegramSrc, telegramDest);
+        }
+        
+        // Restore cron
+        restoreStatus.message = 'Restoring cron...';
+        restoreStatus.progress = 95;
+        const cronSrc = path.join(extractedDir, 'cron');
+        const cronDest = path.join(OPENCLAW_DIR, 'cron');
+        if (fs.existsSync(cronSrc)) {
+            fs.mkdirSync(cronDest, { recursive: true });
+            copyDir(cronSrc, cronDest);
+        }
+        
+        // Clean up temp
+        fs.rmSync(tempDir, { recursive: true });
+        
+        restoreStatus.progress = 100;
+        restoreStatus.message = 'Restore completed!';
+        restoreStatus.completed = true;
+        restoreStatus.inProgress = false;
+    } catch (err) {
+        restoreStatus.error = err.message;
+        restoreStatus.message = 'Error: ' + err.message;
+        restoreStatus.inProgress = false;
+        throw err;
     }
     
     // Restore skills
@@ -371,10 +421,19 @@ const server = http.createServer(async (req, res) => {
             req.on('data', chunk => body += chunk);
             req.on('end', async () => {
                 const { filename } = JSON.parse(body);
-                await restoreBackup(filename);
+                restoreBackup(filename).catch(err => {
+                    console.error('Restore error:', err);
+                });
                 res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ success: true }));
+                res.end(JSON.stringify({ success: true, status: restoreStatus }));
             });
+            return;
+        }
+        
+        // GET /api/backup/restore/status
+        if (req.method === 'GET' && pathname === '/api/backup/restore/status') {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(restoreStatus));
             return;
         }
         

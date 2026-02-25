@@ -653,6 +653,12 @@
         async function restoreBackup(filename) {
             if (!confirm(`⚠️ Restore "${filename}"?\n\nThis will overwrite current data!`)) return;
             
+            // Show progress modal
+            const modal = document.getElementById('restoreModal') || createRestoreModal();
+            modal.style.display = 'flex';
+            const progressBar = document.getElementById('restoreProgress');
+            const progressText = document.getElementById('restoreStatus');
+            
             try {
                 const response = await fetch(`${API_BASE}/restore`, {
                     method: 'POST',
@@ -661,14 +667,52 @@
                 });
                 
                 const data = await response.json();
-                if (data.success) {
-                    showToast('✅ Restore complete!');
-                } else {
+                if (!data.success) {
                     showToast(`❌ Error: ${data.error}`, 'error');
+                    modal.style.display = 'none';
+                    return;
+                }
+                
+                // Poll for status
+                while (true) {
+                    await new Promise(r => setTimeout(r, 500));
+                    const statusRes = await fetch(`${API_BASE}/restore/status`);
+                    const status = await statusRes.json();
+                    
+                    progressBar.style.width = status.progress + '%';
+                    progressText.textContent = status.message;
+                    
+                    if (!status.inProgress) {
+                        if (status.error) {
+                            showToast(`❌ ${status.error}`, 'error');
+                        } else {
+                            showToast('✅ Restore complete!');
+                        }
+                        modal.style.display = 'none';
+                        break;
+                    }
                 }
             } catch (err) {
                 showToast(`❌ Error: ${err.message}`, 'error');
+                modal.style.display = 'none';
             }
+        }
+        
+        function createRestoreModal() {
+            const modal = document.createElement('div');
+            modal.id = 'restoreModal';
+            modal.style.cssText = 'display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9999;align-items:center;justify-content:center;';
+            modal.innerHTML = `
+                <div style="background:#1a1a2e;padding:30px;border-radius:12px;width:400px;text-align:center;">
+                    <h3 style="margin:0 0 20px;">🔄 Restoring...</h3>
+                    <div style="background:#0f0f1a;border-radius:8px;height:24px;overflow:hidden;margin-bottom:15px;">
+                        <div id="restoreProgress" style="width:0%;height:100%;background:linear-gradient(90deg,#00d9ff,#00ff88);transition:width 0.3s;"></div>
+                    </div>
+                    <p id="restoreStatus" style="color:#888;margin:0;">Starting...</p>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            return modal;
         }
         
         function downloadBackup(filename) {
