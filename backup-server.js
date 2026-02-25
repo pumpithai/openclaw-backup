@@ -358,6 +358,13 @@ async function restoreBackup(filename) {
             copyDir(wsSkillsSrc, wsSkillsDest);
         }
         
+        // Restore gateway service
+        restoreStatus.message = 'Setting up gateway...';
+        const currentUser = os.userInfo().username;
+        await execPromise(`chown -R ${currentUser}:${currentUser} ${OPENCLAW_DIR}`);
+        await execPromise('openclaw gateway install');
+        await execPromise('systemctl --user start openclaw-gateway.service');
+        
         // Clean up temp
         fs.rmSync(tempDir, { recursive: true });
         
@@ -371,15 +378,6 @@ async function restoreBackup(filename) {
         restoreStatus.inProgress = false;
         throw err;
     }
-    
-    // Restore gateway service
-    const currentUser = os.userInfo().username;
-    await execPromise(`chown -R ${currentUser}:${currentUser} ${OPENCLAW_DIR}`);
-    await execPromise('openclaw gateway install');
-    await execPromise('systemctl --user start openclaw-gateway.service');
-    
-    // Clean up
-    fs.rmSync(tempDir, { recursive: true });
     
     return true;
 }
