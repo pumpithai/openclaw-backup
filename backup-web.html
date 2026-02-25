@@ -688,12 +688,22 @@
                     progressText.textContent = status.message;
                     
                     if (!status.inProgress) {
+                        modal.style.display = 'none';
                         if (status.error) {
                             showToast(`❌ ${status.error}`, 'error');
                         } else {
-                            showToast('✅ Restore complete!');
+                            showToast('✅ Restore complete! Restarting gateway in 5 seconds...');
+                            // Restart gateway after 5 seconds
+                            setTimeout(async () => {
+                                try {
+                                    await fetch('/api/gateway/restart', { method: 'POST' });
+                                    showToast('🔄 Gateway restarted!');
+                                } catch (e) {
+                                    // Fallback: openclaw command
+                                    showToast('⚠️ Please restart gateway manually: openclaw gateway restart');
+                                }
+                            }, 5000);
                         }
-                        modal.style.display = 'none';
                         break;
                     }
                 }
