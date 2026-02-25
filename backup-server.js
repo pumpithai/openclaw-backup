@@ -488,8 +488,14 @@ const server = http.createServer(async (req, res) => {
             let body = '';
             req.on('data', chunk => body += chunk);
             req.on('end', async () => {
-                const { type } = JSON.parse(body || '{}');
-                const filename = await createBackup(type || 'manual');
+                let type = 'manual';
+                try {
+                    const data = JSON.parse(body || '{}');
+                    type = data.type || 'manual';
+                } catch (e) {
+                    // Use default
+                }
+                const filename = await createBackup(type);
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ success: true, filename }));
             });
