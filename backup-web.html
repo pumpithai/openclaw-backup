@@ -451,6 +451,20 @@
                     <div id="scheduleList"></div>
                 </div>
                 
+                <!-- Config -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">⚙️ Settings</div>
+                    </div>
+                    <div style="margin-bottom:12px;">
+                        <label style="display:block;margin-bottom:6px;color:#888;">Max Backups to Keep</label>
+                        <input type="number" id="maxBackups" min="1" max="100" style="width:100%;padding:10px;background:#1a1a2e;color:#fff;border:1px solid #333;border-radius:8px;" onchange="saveConfig()">
+                    </div>
+                    <button class="btn btn-sm" style="background:var(--accent);color:var(--bg-primary);width:100%;" onclick="saveConfig()">
+                        💾 Save Settings
+                    </button>
+                </div>
+                
                 <!-- Upload -->
                 <div class="card">
                     <div class="card-header">
@@ -821,9 +835,35 @@
             }
         });
         
+        async function loadConfig() {
+            try {
+                const response = await fetch(`${API_BASE}/config`);
+                const config = await response.json();
+                document.getElementById('maxBackups').value = config.maxBackups || 10;
+            } catch (e) {
+                console.error('Failed to load config:', e);
+            }
+        }
+        
+        async function saveConfig() {
+            try {
+                const maxBackups = parseInt(document.getElementById('maxBackups').value) || 10;
+                const response = await fetch(`${API_BASE}/config`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ maxBackups })
+                });
+                const config = await response.json();
+                showToast('✅ Settings saved!');
+            } catch (e) {
+                showToast(`❌ Error: ${e.message}`, 'error');
+            }
+        }
+        
         // Initial load
         refreshBackups();
         refreshSchedules();
+        loadConfig();
     </script>
 </body>
 </html>

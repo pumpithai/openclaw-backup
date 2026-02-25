@@ -11,7 +11,56 @@ const HOME_DIR = os.homedir();
 const BACKUP_DIR = process.env.BACKUP_DIR || path.join(HOME_DIR, '.openclaw/backups');
 const CRON_DIR = process.env.CRON_DIR || path.join(HOME_DIR, '.openclaw/cron');
 const OPENCLAW_DIR = path.join(HOME_DIR, '.openclaw');
+const CONFIG_FILE = path.join(BACKUP_DIR, 'config.json');
 const PORT = process.env.PORT || 3847;
+
+// Default config
+let config = {
+    maxBackups: 10,
+    maxBackupsSize: 0  // 0 = no limit
+};
+
+// Load config
+function loadConfig() {
+    try {
+        if (fs.existsSync(CONFIG_FILE)) {
+            config = { ...config, ...JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')) };
+        }
+    } catch (e) {}
+}
+
+// Save config
+function saveConfig() {
+    fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
+}
+
+// Cleanup old backups
+function cleanupBackups() {
+    if (config.maxBackups <= 0) return;
+    
+    const files = fs.readdirSync(BACKUP_DIR)
+        .filter(f => f.endsWith('.tar.gz'))
+        .map(f => ({
+            name: f,
+            path: path.join(BACKUP_DIR, f),
+            time: fs.statSync(path.join(BACKUP_DIR, f)).mtime.getTime()
+        }))
+        .sort((a, b) => b.time - a.time);
+    
+    if (files.length > config.maxBackups) {
+        const toDelete = files.slice(config.maxBackups);
+        toDelete.forEach(f => {
+            try {
+                fs.unlinkSync(f.path);
+                console.log('Deleted old backup:', f.name);
+            } catch (e) {
+                console.error('Failed to delete:', f.name, e.message);
+            }
+        });
+    }
+}
+
+loadConfig();
 
 // Restore status tracking
 let restoreStatus = {
@@ -137,6 +186,9 @@ async function createBackup() {
     
     // Clean up temp folder
     fs.rmSync(backupPath, { recursive: true });
+    
+    // Cleanup old backups
+    cleanupBackups();
     
     return `${backupName}.tar.gz`;
 }
@@ -501,6 +553,28 @@ const server = http.createServer(async (req, res) => {
             fs.unlinkSync(filepath);
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: true }));
+            return;
+        }
+        
+        // GET /api/backup/config
+        if (req.method === 'GET' && pathname === '/api/backup/config') {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(config));
+            return;
+        }
+        
+        // POST /api/backup/config
+        if (req.method === 'POST' && pathname === '/api/backup/config') {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                const newConfig = JSON.parse(body);
+                config = { ...config, ...newConfig };
+                saveConfig();
+                cleanupBackups();
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(config));
+            });
             return;
         }
         
