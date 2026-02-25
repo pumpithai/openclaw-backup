@@ -1,0 +1,12 @@
+{
+  "name": "openclaw-backup",
+  "version": "1.0.0",
+  "description": "OpenClaw Backup & Restore Web UI",
+  "main": "backup-server.js",
+  "scripts": {
+    "start": "node backup-server.js"
+  },
+  "keywords": ["openclaw", "backup"],
+  "author": "",
+  "license": "MIT"
+}

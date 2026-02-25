@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔙 OpenClaw Backup</title>
+    <style>
+        :root {
+            --bg-primary: #0f0f1a;
+            --bg-secondary: #1a1a2e;
+            --bg-card: #16213e;
+            --accent: #00d9ff;
+            --accent-green: #00ff88;
+            --accent-red: #ff6b6b;
+            --accent-yellow: #ffc800;
+            --text: #fff;
+            --text-dim: #888;
+            --border: rgba(255,255,255,0.1);
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 20px;
+            background-image: 
+                radial-gradient(ellipse at top, #1a1a3e 0%, transparent 50%),
+                radial-gradient(ellipse at bottom right, #0a2a2a 0%, transparent 50%);
+        }
+        
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        
+        /* Main Grid Layout */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+        
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .content {
+            min-width: 0;
+        }
+        
+        /* Header */
+        header {
+            text-align: center;
+            padding: 20px 0;
+        }
+        
+        header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, var(--accent), var(--accent-green));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 4px;
+        }
+        
+        header p {
+            color: var(--text-dim);
+            font-size: 0.85rem;
+        }
+        
+        /* Stats Bar */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+        }
+        
+        .stat-card .icon {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+        }
+        
+        .stat-card .value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+        
+        .stat-card .label {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+        
+        /* Action Buttons */
+        .actions {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 16px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent-green));
+            color: var(--bg-primary);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 217, 255, 0.3);
+        }
+        
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        /* Card */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        /* Backup List */
+        .backup-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            overflow-y: auto;
+            scrollbar-width: none;
+        }
+        
+        .backup-list::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .backup-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        
+        .backup-item:hover {
+            background: rgba(255,255,255,0.08);
+        }
+        
+        .backup-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #2a2a4e, #1a1a3e);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            margin-right: 12px;
+        }
+        
+        .backup-info {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .backup-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .backup-meta {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
+        
+        .backup-actions {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .btn-sm {
+            padding: 6px 10px;
+            font-size: 0.75rem;
+            border-radius: 6px;
+        }
+        
+        .btn-restore {
+            background: rgba(255, 200, 0, 0.15);
+            color: var(--accent-yellow);
+            border: 1px solid var(--accent-yellow);
+        }
+        
+        .btn-download {
+            background: rgba(0, 217, 255, 0.15);
+            color: var(--accent);
+            border: 1px solid var(--accent);
+        }
+        
+        .btn-delete {
+            background: rgba(255, 107, 107, 0.15);
+            color: var(--accent-red);
+            border: 1px solid var(--accent-red);
+        }
+        
+        /* Upload Area */
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 32px;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .upload-area:hover {
+            border-color: var(--accent);
+            background: rgba(0, 217, 255, 0.05);
+        }
+        
+        .upload-area input {
+            display: none;
+        }
+        
+        .upload-icon {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+        }
+        
+        .upload-text {
+            color: var(--text-dim);
+        }
+        
+        .upload-text strong {
+            color: var(--accent);
+        }
+        
+        /* Status */
+        .status {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            display: none;
+            font-size: 0.9rem;
+        }
+        
+        .status.show { display: block; }
+        .status.success { background: rgba(0, 255, 136, 0.1); border: 1px solid var(--accent-green); color: var(--accent-green); }
+        .status.error { background: rgba(255, 107, 107, 0.1); border: 1px solid var(--accent-red); color: var(--accent-red); }
+        .status.loading { background: rgba(0, 217, 255, 0.1); border: 1px solid var(--accent); color: var(--accent); }
+        
+        /* Progress */
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 12px;
+            display: none;
+        }
+        
+        .progress-bar.show { display: block; }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--accent-green));
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        /* Empty State */
+        .empty {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-dim);
+        }
+        
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+        
+        /* Loading Spinner */
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid transparent;
+            border-top-color: currentColor;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+        
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        
+        .toast {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideIn 0.3s ease;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .toast.success { border-left: 3px solid var(--accent-green); }
+        .toast.error { border-left: 3px solid var(--accent-red); }
+        
+        /* Responsive */
+        @media (max-width: 800px) {
+            .main-grid { grid-template-columns: 1fr; }
+            .stats-bar { grid-template-columns: repeat(2, 1fr); }
+            .actions { flex-direction: column; }
+            .backup-item { flex-wrap: wrap; }
+            .backup-actions { width: 100%; margin-top: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="toast-container" id="toastContainer"></div>
+    
+    <div class="container">
+        <header>
+            <h1>🔙 OpenClaw Backup</h1>
+            <p>Backup & Restore your OpenClaw data</p>
+        </header>
+        
+        <!-- Actions -->
+        <div class="actions">
+            <button class="btn btn-primary" onclick="createBackup()">
+                ➕ Create Backup
+            </button>
+            <button class="btn btn-secondary" onclick="refreshBackups()">
+                🔄 Refresh
+            </button>
+        </div>
+        
+        <div class="progress-bar" id="progressBar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        
+        <!-- Two Column Layout -->
+        <div class="main-grid">
+            <!-- Left Sidebar -->
+            <div class="sidebar">
+                <!-- Stats -->
+                <div class="stats-bar" style="grid-template-columns: repeat(2, 1fr);">
+                    <div class="stat-card">
+                        <div class="icon">📦</div>
+                        <div class="value" id="totalBackups">-</div>
+                        <div class="label">Backups</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="icon">💾</div>
+                        <div class="value" id="totalSize">-</div>
+                        <div class="label">Size</div>
+                    </div>
+                </div>
+                
+                <!-- Schedule -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">⏰ Auto Backup</div>
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <select id="cronPreset" onchange="updateCronInput()" style="width:100%;padding:10px;background:#1a1a2e;color:#fff;border:1px solid #333;border-radius:8px;margin-bottom:8px;">
+                            <option value="">-- Select --</option>
+                            <option value="0 * * * *">Every hour</option>
+                            <option value="0 0 * * *">Daily</option>
+                            <option value="0 0 * * 0">Weekly</option>
+                            <option value="0 0 1 * *">Monthly</option>
+                        </select>
+                    </div>
+                    <input type="text" id="cronInput" placeholder="* * * * *" style="width:100%;padding:10px;background:#1a1a2e;color:#fff;border:1px solid #333;border-radius:8px;margin-bottom:8px;">
+                    <button class="btn btn-sm" style="background:var(--accent);color:var(--bg-primary);width:100%;margin-bottom:12px;" onclick="addSchedule()">
+                        ➕ Add Schedule
+                    </button>
+                    <div id="scheduleList"></div>
+                </div>
+                
+                <!-- Upload -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">⬆️ Upload</div>
+                    </div>
+                    <label class="upload-area" id="uploadArea">
+                        <input type="file" id="uploadFile" accept=".tar.gz" onchange="handleFileSelect(event)">
+                        <div class="upload-icon">📂</div>
+                        <div class="upload-text">
+                            <strong>Click to upload</strong><br>
+                            <small>.tar.gz only</small>
+                        </div>
+                    </label>
+                    <div class="status" id="uploadStatus"></div>
+                </div>
+            </div>
+            
+            <!-- Right Content - Backup History -->
+            <div class="content">
+                <div class="card" style="min-height: 400px;">
+                    <div class="card-header">
+                        <div class="card-title">📋 Backup History</div>
+                    </div>
+                    <div class="backup-list" id="backupList">
+                        <div class="empty">
+                            <div class="empty-icon">📭</div>
+                            <p>No backups found</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api/backup';
+        let selectedFile = null;
+        let currentPage = 1;
+        let totalPages = 1;
+        
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+        
+        function showStatus(id, message, type) {
+            const el = document.getElementById(id);
+            el.className = `status show ${type}`;
+            el.innerHTML = type === 'loading' ? `<span class="spinner"></span>${message}` : message;
+        }
+        
+        function hideStatus(id) {
+            document.getElementById(id).className = 'status';
+        }
+        
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                selectedFile = file;
+                document.querySelector('.upload-text').innerHTML = 
+                    `<strong>${file.name}</strong><br><small>${(file.size/1024).toFixed(1)} KB</small>`;
+                uploadBackup();
+            }
+        }
+        
+        async function createBackup() {
+            showStatus('uploadStatus', 'Creating backup...', 'loading');
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+            progressBar.classList.add('show');
+            progressFill.style.width = '30%';
+            
+            try {
+                const response = await fetch(`${API_BASE}/create`, { method: 'POST' });
+                progressFill.style.width = '80%';
+                const data = await response.json();
+                progressFill.style.width = '100%';
+                
+                if (data.success) {
+                    showToast(`✅ Backup created: ${data.filename}`);
+                    showStatus('uploadStatus', '', '');
+                } else {
+                    showStatus('uploadStatus', `❌ Error: ${data.error}`, 'error');
+                }
+            } catch (err) {
+                showStatus('uploadStatus', `❌ Error: ${err.message}`, 'error');
+            }
+            
+            setTimeout(() => {
+                progressBar.classList.remove('show');
+                progressFill.style.width = '0%';
+                refreshBackups();
+            }, 1500);
+        }
+        
+        async function uploadBackup() {
+            if (!selectedFile) return;
+            
+            showStatus('uploadStatus', 'Uploading...', 'loading');
+            
+            try {
+                const response = await fetch(`${API_BASE}/upload`, {
+                    method: 'POST',
+                    headers: { 'Content-Disposition': `attachment; filename="${selectedFile.name}"` },
+                    body: selectedFile
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast(`✅ Upload complete: ${data.filename}`);
+                    showStatus('uploadStatus', '', '');
+                    selectedFile = null;
+                    document.getElementById('uploadFile').value = '';
+                    document.querySelector('.upload-text').innerHTML = 
+                        '<strong>Click to upload</strong> or drag and drop<br><small>Only .tar.gz files allowed</small>';
+                    refreshBackups();
+                } else {
+                    showStatus('uploadStatus', `❌ Error: ${data.error}`, 'error');
+                }
+            } catch (err) {
+                showStatus('uploadStatus', `❌ Error: ${err.message}`, 'error');
+            }
+        }
+        
+        async function refreshBackups() {
+            try {
+                const response = await fetch(`${API_BASE}/list?page=${currentPage}&limit=10`);
+                const data = await response.json();
+                
+                const backups = data.backups || [];
+                totalPages = data.totalPages || 1;
+                
+                const list = document.getElementById('backupList');
+                
+                // Update stats
+                const totalBackupsEl = document.getElementById('totalBackups');
+                const totalSizeEl = document.getElementById('totalSize');
+                
+                if (totalBackupsEl) totalBackupsEl.textContent = data.total || 0;
+                if (totalSizeEl) {
+                    // Get all backups for total size
+                    const allResponse = await fetch(`${API_BASE}/list?page=1&limit=1000`);
+                    const allData = await allResponse.json();
+                    const totalSize = (allData.backups || []).reduce((acc, b) => acc + parseFloat(b.size), 0);
+                    totalSizeEl.textContent = totalSize > 1024 ? (totalSize/1024).toFixed(1) + ' MB' : totalSize.toFixed(1) + ' KB';
+                }
+                
+                if (backups.length === 0) {
+                    list.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><p>No backups found</p></div>';
+                    return;
+                }
+                
+                list.innerHTML = backups.map((backup, i) => `
+                    <div class="backup-item">
+                        <div class="backup-icon">🗜️</div>
+                        <div class="backup-info">
+                            <div class="backup-name">${backup.name}</div>
+                            <div class="backup-meta">${backup.size} • ${backup.date}</div>
+                        </div>
+                        <div class="backup-actions">
+                            <button class="btn btn-sm btn-restore" onclick="restoreBackup('${backup.name}')">
+                                ♻️
+                            </button>
+                            <button class="btn btn-sm btn-download" onclick="downloadBackup('${backup.name}')">
+                                ⬇️
+                            </button>
+                            <button class="btn btn-sm btn-delete" onclick="deleteBackup('${backup.name}')">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+                
+                // Add pagination
+                if (totalPages > 1) {
+                    list.innerHTML += `
+                        <div class="pagination" style="display:flex;justify-content:center;gap:8px;margin-top:16px;align-items:center;">
+                            <button class="btn btn-sm btn-secondary" onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>◀</button>
+                            <span style="color:#888;font-size:0.85rem;">${currentPage} / ${totalPages}</span>
+                            <button class="btn btn-sm btn-secondary" onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>▶</button>
+                        </div>
+                    `;
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        
+        function goToPage(page) {
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            refreshBackups();
+        }
+        
+        async function restoreBackup(filename) {
+            if (!confirm(`⚠️ Restore "${filename}"?\n\nThis will overwrite current data!`)) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/restore`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    showToast('✅ Restore complete!');
+                } else {
+                    showToast(`❌ Error: ${data.error}`, 'error');
+                }
+            } catch (err) {
+                showToast(`❌ Error: ${err.message}`, 'error');
+            }
+        }
+        
+        function downloadBackup(filename) {
+            window.open(`${API_BASE}/download/${filename}`, '_blank');
+        }
+        
+        async function deleteBackup(filename) {
+            if (!confirm(`Delete "${filename}"?`)) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/delete/${filename}`, { method: 'DELETE' });
+                const data = await response.json();
+                if (data.success) {
+                    showToast('✅ Deleted');
+                    refreshBackups();
+                } else {
+                    showToast(`❌ Error: ${data.error}`, 'error');
+                }
+            } catch (err) {
+                showToast(`❌ Error: ${err.message}`, 'error');
+            }
+        }
+        
+        function openBackupFolder() {
+            window.open('file:///home/cloudm9n/.openclaw/backups', '_blank');
+        }
+        
+        function updateCronInput() {
+            const preset = document.getElementById('cronPreset').value;
+            if (preset) {
+                document.getElementById('cronInput').value = preset;
+            }
+        }
+        
+        async function addSchedule() {
+            const cron = document.getElementById('cronInput').value;
+            if (!cron) {
+                showToast('Please enter a cron expression', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/schedules`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cron, enabled: true })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showToast('✅ Schedule added');
+                    document.getElementById('cronInput').value = '';
+                    document.getElementById('cronPreset').value = '';
+                    refreshSchedules();
+                }
+            } catch (err) {
+                showToast('Error: ' + err.message, 'error');
+            }
+        }
+        
+        async function refreshSchedules() {
+            try {
+                const response = await fetch(`${API_BASE}/schedules`);
+                const data = await response.json();
+                const list = document.getElementById('scheduleList');
+                
+                if (!data.schedules || data.schedules.length === 0) {
+                    list.innerHTML = '<div style="color:#888;font-size:0.85rem;">No schedules</div>';
+                    return;
+                }
+                
+                list.innerHTML = data.schedules.map(s => `
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:rgba(255,255,255,0.05);border-radius:6px;margin-bottom:6px;">
+                        <span style="font-family:monospace;font-size:0.85rem;">${s.cron}</span>
+                        <button onclick="deleteSchedule('${s.id}')" style="background:transparent;border:none;color:#ff6b6b;cursor:pointer;">✕</button>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        
+        async function deleteSchedule(id) {
+            try {
+                const response = await fetch(`${API_BASE}/schedules/${id}`, { method: 'DELETE' });
+                const data = await response.json();
+                if (data.success) {
+                    showToast('✅ Schedule removed');
+                    refreshSchedules();
+                }
+            } catch (err) {
+                showToast('Error: ' + err.message, 'error');
+            }
+        }
+        
+        // Drag and drop
+        const uploadArea = document.getElementById('uploadArea');
+        uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.style.borderColor = '#00d9ff'; });
+        uploadArea.addEventListener('dragleave', e => { e.preventDefault(); uploadArea.style.borderColor = ''; });
+        uploadArea.addEventListener('drop', e => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '';
+            const file = e.dataTransfer.files[0];
+            if (file && file.name.endsWith('.tar.gz')) {
+                selectedFile = file;
+                uploadBackup();
+            }
+        });
+        
+        // Initial load
+        refreshBackups();
+        refreshSchedules();
+    </script>
+</body>
+</html>
