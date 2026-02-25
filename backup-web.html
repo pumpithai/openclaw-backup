@@ -876,6 +876,12 @@
         refreshBackups();
         refreshSchedules();
         loadConfig();
+        
+        // Auto refresh every 30 seconds
+        setInterval(() => {
+            refreshBackups();
+            refreshSchedules();
+        }, 30000);
     </script>
 </body>
 </html>
