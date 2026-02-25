@@ -56,10 +56,11 @@ async function listBackups() {
                 const filepath = path.join(BACKUP_DIR, f);
                 const stats = fs.statSync(filepath);
                 const date = stats.mtime.toLocaleString('th-TH');
+                const timestamp = stats.mtime.getTime();
                 const size = formatSize(stats.size);
-                return { name: f, size, date };
+                return { name: f, size, date, timestamp };
             })
-            .sort((a, b) => new Date(b.date) - new Date(a.date));
+            .sort((a, b) => b.timestamp - a.timestamp);
         return backups;
     } catch (err) {
         return [];
