@@ -445,7 +445,8 @@
                     <button class="btn btn-sm" style="background:var(--accent);color:var(--bg-primary);width:100%;margin-bottom:12px;" onclick="addSchedule()">
                         ➕ Add Schedule
                     </button>
-                    <input type="text" id="cronInput" placeholder="* * * * *" style="width:100%;padding:10px;background:#1a1a2e;color:#fff;border:1px solid #333;border-radius:8px;margin-bottom:12px;">
+                    <input type="text" id="cronInput" placeholder="* * * * *" style="width:100%;padding:10px;background:#1a1a2e;color:#fff;border:1px solid #333;border-radius:8px;margin-bottom:6px;" oninput="updateNextBackup()">
+                    <div id="nextBackupPreview" style="font-size:12px;color:#888;margin-bottom:12px;"></div>
                     <div style="margin-top:16px;padding-top:12px;border-top:1px solid #333;">
                         <label style="display:block;margin-bottom:6px;color:#888;font-size:12px;">Max Backups to Keep</label>
                         <div style="display:flex;gap:8px;">
@@ -750,6 +751,62 @@
             if (preset) {
                 document.getElementById('cronInput').value = preset;
             }
+            updateNextBackup();
+        }
+        
+        function updateNextBackup() {
+            const cron = document.getElementById('cronInput').value.trim();
+            const preview = document.getElementById('nextBackupPreview');
+            if (!cron) {
+                preview.textContent = '';
+                return;
+            }
+            const next = getNextRunTime(cron);
+            if (next) {
+                preview.textContent = '📅 Next backup: ' + next;
+            } else {
+                preview.textContent = '⚠️ Invalid cron expression';
+                preview.style.color = '#ff6b6b';
+            }
+        }
+        
+        function getNextRunTime(cronExpr) {
+            const parts = cronExpr.split(' ');
+            if (parts.length < 5) return null;
+            
+            const [min, hour, dom, mon, dow] = parts;
+            const now = new Date();
+            const next = new Date(now);
+            next.setSeconds(0);
+            next.setMilliseconds(0);
+            
+            // Simple next run calculation
+            const minVal = min === '*' ? now.getMinutes() + 1 : parseInt(min);
+            const hourVal = hour === '*' ? now.getHours() : parseInt(hour);
+            
+            if (min !== '*' && parseInt(min) <= now.getMinutes()) {
+                next.setHours(next.getHours() + 1);
+            }
+            next.setMinutes(parseInt(min) || 0);
+            next.setHours(parseInt(hour) || 0);
+            
+            if (cronExpr.startsWith('*/')) {
+                const interval = parseInt(cronExpr.split(' ')[0].replace('*/', ''));
+                const minsSinceHour = now.getMinutes() % interval;
+                next.setMinutes(now.getMinutes() + (interval - minsSinceHour));
+                if (next <= now) {
+                    next.setHours(next.getHours() + 1);
+                    next.setMinutes(now.getMinutes() + interval - 60);
+                }
+            }
+            
+            return next.toLocaleString('th-TH', { 
+                weekday: 'short', 
+                day: 'numeric', 
+                month: 'short', 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
         }
         
         async function addSchedule() {
