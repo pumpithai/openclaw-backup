@@ -2,7 +2,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { exec, spawn } = require('child_process');
+const { exec, spawn, execSync } = require('child_process');
 const util = require('util');
 
 const execPromise = util.promisify(exec);
@@ -262,6 +262,36 @@ function listSchedules() {
     return [];
 }
 
+function syncCrontab(schedules) {
+    const enabledSchedules = schedules.filter(s => s.enabled);
+    
+    // Remove existing backup cron entries
+    let currentCrontab = '';
+    try {
+        currentCrontab = execSync('crontab -l 2>/dev/null || echo ""').toString();
+    } catch (e) {
+        currentCrontab = '';
+    }
+    
+    const lines = currentCrontab.split('\n').filter(line => 
+        !line.includes('openclaw-backup.sh')
+    );
+    
+    // Add new schedules
+    enabledSchedules.forEach(schedule => {
+        const cronLine = `${schedule.cron} /home/cloudm9n/.openclaw/workspace/scripts/openclaw-backup.sh >> /home/cloudm9n/.openclaw/backups/backup.log 2>&1`;
+        lines.push(cronLine);
+    });
+    
+    // Write new crontab
+    const newCrontab = lines.filter(l => l.trim()).join('\n') + '\n';
+    try {
+        execSync(`echo "${newCrontab}" | crontab -`, { stdio: 'pipe' });
+    } catch (e) {
+        console.error('Failed to update crontab:', e.message);
+    }
+}
+
 function createSchedule(cronExpression, enabled = true) {
     const id = 'backup_' + Date.now();
     const schedules = listSchedules();
@@ -277,6 +307,9 @@ function createSchedule(cronExpression, enabled = true) {
     fs.mkdirSync(CRON_DIR, { recursive: true });
     fs.writeFileSync(cronFile, JSON.stringify({ schedules }, null, 2));
     
+    // Sync to system crontab
+    syncCrontab(schedules);
+    
     return { success: true, id, schedules };
 }
 
@@ -286,6 +319,9 @@ function deleteSchedule(id) {
     
     const cronFile = path.join(CRON_DIR, 'backup.json');
     fs.writeFileSync(cronFile, JSON.stringify({ schedules }, null, 2));
+    
+    // Sync to system crontab
+    syncCrontab(schedules);
     
     return { success: true, schedules };
 }
