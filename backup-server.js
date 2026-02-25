@@ -654,6 +654,25 @@ const server = http.createServer(async (req, res) => {
             return;
         }
         
+        // POST /api/gateway/restart
+        if (req.method === 'POST' && pathname === '/api/gateway/restart') {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true, message: 'Gateway restart scheduled' }));
+            
+            // Restart gateway after 5 seconds
+            setTimeout(async () => {
+                try {
+                    await execPromise('openclaw gateway install');
+                    await new Promise(r => setTimeout(r, 5000));
+                    await execPromise('openclaw gateway restart');
+                    console.log('Gateway restarted after restore');
+                } catch (e) {
+                    console.error('Gateway restart failed:', e.message);
+                }
+            }, 5000);
+            return;
+        }
+        
         // Serve static files
         let filepath = pathname === '/' 
             ? path.join(__dirname, 'backup-web.html')
