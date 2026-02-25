@@ -13,7 +13,7 @@ Web UI สำหรับ backup และ restore OpenClaw data
 
 ```bash
 # Clone or download
-git clone https://github.com/your-repo/openclaw-backup.git
+git clone https://github.com/pumpithai/openclaw-backup.git
 cd openclaw-backup
 
 # Run installer
