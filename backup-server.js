@@ -124,7 +124,18 @@ async function listBackups() {
                 const date = stats.mtime.toLocaleString('th-TH');
                 const timestamp = stats.mtime.getTime();
                 const size = formatSize(stats.size);
-                return { name: f, size, date, timestamp };
+                
+                // Get backup type from metadata
+                const metaPath = path.join(BACKUP_DIR, f.replace('.tar.gz', '.json'));
+                let type = 'manual';
+                try {
+                    if (fs.existsSync(metaPath)) {
+                        const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+                        type = meta.type || 'manual';
+                    }
+                } catch (e) {}
+                
+                return { name: f, size, date, timestamp, type };
             })
             .sort((a, b) => b.timestamp - a.timestamp);
         return backups;
@@ -144,7 +155,7 @@ function formatSize(bytes) {
 // Create backup
 async function createBackup(type = 'manual') {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const backupName = `openclaw_backup_${timestamp}`;
+    const backupName = `openclaw_${type}_backup_${timestamp}`;
     const backupPath = path.join(BACKUP_DIR, backupName);
     
     // Create temp backup folder
