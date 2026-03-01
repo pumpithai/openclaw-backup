@@ -536,7 +536,7 @@ function syncCrontab(schedules) {
     }
     
     const lines = currentCrontab.split('\n').filter(line => 
-        !line.includes('openclaw-backup.sh')
+        !line.includes('openclaw-backup.sh') && !line.includes('/api/backup/create')
     );
     
     // Add new schedules (use curl to call API for proper cleanup)
@@ -549,7 +549,7 @@ function syncCrontab(schedules) {
     // Write new crontab
     const newCrontab = lines.filter(l => l.trim()).join('\n') + '\n';
     try {
-        execSync(`echo "${newCrontab}" | crontab -`, { stdio: 'pipe' });
+        execSync(`printf '%s\n' "${newCrontab}" | crontab -`, { stdio: 'pipe' });
     } catch (e) {
         console.error('Failed to update crontab:', e.message);
     }
