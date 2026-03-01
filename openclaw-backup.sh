@@ -128,6 +128,9 @@ backup() {
     tar -czf "${BACKUP_NAME}.tar.gz" "$BACKUP_NAME"
     rm -rf "$BACKUP_PATH"
     
+    # Create metadata
+    echo '{"type":"auto","created":"'$(date -Iseconds)'"}' > "${BACKUP_DIR}/${BACKUP_NAME}.json"
+    
     # List backups
     ls -lh "$BACKUP_DIR"/*.tar.gz 2>/dev/null | tail -5
     

@@ -467,6 +467,10 @@ async function restoreBackup(filename) {
         await execPromise('openclaw gateway install');
         await execPromise('systemctl --user start openclaw-gateway.service');
         
+        // Sync crontab after restore
+        const schedules = listSchedules();
+        syncCrontab(schedules);
+        
         // Clean up temp
         fs.rmSync(tempDir, { recursive: true });
         
