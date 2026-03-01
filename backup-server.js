@@ -527,6 +527,16 @@ function listSchedules() {
 function syncCrontab(schedules) {
     const enabledSchedules = schedules.filter(s => s.enabled);
     
+    // Remove existing backup schedules from file to prevent duplicates
+    const cronFile = path.join(CRON_DIR, 'backup.json');
+    if (fs.existsSync(cronFile)) {
+        try {
+            const existingData = JSON.parse(fs.readFileSync(cronFile, 'utf8'));
+            // Keep only the new schedules we're about to add
+            fs.writeFileSync(cronFile, JSON.stringify({ schedules: enabledSchedules }, null, 2));
+        } catch (e) {}
+    }
+    
     // Remove existing backup cron entries
     let currentCrontab = '';
     try {
