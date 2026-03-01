@@ -30,6 +30,13 @@ if ! command -v node &> /dev/null; then
     sudo apt-get install -y nodejs
 fi
 
+# Kill existing backup server if running
+if pgrep -f 'node backup-server.js' &> /dev/null; then
+    log_info "Killing existing backup server..."
+    pkill -f 'node backup-server.js'
+    sleep 1
+fi
+
 # Create backup directory
 log_info "Creating backup directory..."
 mkdir -p "$BACKUP_DIR"
