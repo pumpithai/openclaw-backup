@@ -542,8 +542,7 @@ function syncCrontab(schedules) {
     // Add new schedules (use curl to call API for proper cleanup)
     enabledSchedules.forEach(schedule => {
         const logPath = path.join(OPENCLAW_DIR, 'backups/backup.log');
-        const jsonData = JSON.stringify({ type: 'auto' });
-        const cronLine = `${schedule.cron} curl -s -X POST 'http://localhost:${PORT}/api/backup/create' -H 'Content-Type: application/json' -d '${jsonData}' >> '${logPath}' 2>&1`;
+        const cronLine = schedule.cron + ' curl -s -X POST \'http://localhost:' + PORT + '/api/backup/create\' -H \'Content-Type: application/json\' -d \'{"type":"auto"}\' >> \'' + logPath + '\' 2>&1';
         lines.push(cronLine);
     });
     
