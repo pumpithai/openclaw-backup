@@ -291,7 +291,6 @@ async function createBackup(type = 'manual') {
     
     // Cleanup old backups
     cleanupBackups();
-    }
     
     return `${backupName}.tar.gz`;
 }
