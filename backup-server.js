@@ -8,9 +8,9 @@ const util = require('util');
 const execPromise = util.promisify(exec);
 
 const HOME_DIR = os.homedir();
-const BACKUP_DIR = process.env.BACKUP_DIR || path.join(HOME_DIR, '.openclaw/backups');
-const CRON_DIR = process.env.CRON_DIR || path.join(HOME_DIR, '.openclaw/cron');
 const OPENCLAW_DIR = path.join(HOME_DIR, '.openclaw');
+const BACKUP_DIR = process.env.BACKUP_DIR || path.join(OPENCLAW_DIR, 'backups');
+const CRON_DIR = process.env.CRON_DIR || path.join(OPENCLAW_DIR, 'cron');
 const CONFIG_FILE = path.join(BACKUP_DIR, 'config.json');
 const PORT = process.env.PORT || 3847;
 
@@ -162,13 +162,13 @@ async function createBackup(type = 'manual') {
     fs.mkdirSync(backupPath, { recursive: true });
     
     // Copy OpenClaw config
-    const configSrc = '/home/cloudm9n/.openclaw/openclaw.json';
+    const configSrc = path.join(OPENCLAW_DIR, 'openclaw.json');
     if (fs.existsSync(configSrc)) {
         fs.copyFileSync(configSrc, path.join(backupPath, 'openclaw.json'));
     }
     
     // Copy workspace (exclude git, node_modules)
-    const workspaceSrc = '/home/cloudm9n/.openclaw/workspace';
+    const workspaceSrc = path.join(OPENCLAW_DIR, 'workspace');
     const workspaceDest = path.join(backupPath, 'workspace');
     fs.mkdirSync(workspaceDest, { recursive: true });
     
@@ -177,7 +177,7 @@ async function createBackup(type = 'manual') {
     }
     
     // Copy credentials (masked)
-    const credsSrc = '/home/cloudm9n/.openclaw/credentials';
+    const credsSrc = path.join(OPENCLAW_DIR, 'credentials');
     const credsDest = path.join(backupPath, 'credentials');
     if (fs.existsSync(credsSrc)) {
         fs.mkdirSync(credsDest, { recursive: true });
@@ -185,7 +185,7 @@ async function createBackup(type = 'manual') {
     }
     
     // Copy agents
-    const agentsSrc = '/home/cloudm9n/.openclaw/agents';
+    const agentsSrc = path.join(OPENCLAW_DIR, 'agents');
     const agentsDest = path.join(backupPath, 'agents');
     if (fs.existsSync(agentsSrc)) {
         fs.mkdirSync(agentsDest, { recursive: true });
@@ -193,7 +193,7 @@ async function createBackup(type = 'manual') {
     }
     
     // Copy telegram
-    const telegramSrc = '/home/cloudm9n/.openclaw/telegram';
+    const telegramSrc = path.join(OPENCLAW_DIR, 'telegram');
     const telegramDest = path.join(backupPath, 'telegram');
     if (fs.existsSync(telegramSrc)) {
         fs.mkdirSync(telegramDest, { recursive: true });
@@ -201,11 +201,59 @@ async function createBackup(type = 'manual') {
     }
     
     // Copy cron
-    const cronSrc = '/home/cloudm9n/.openclaw/cron';
+    const cronSrc = path.join(OPENCLAW_DIR, 'cron');
     const cronDest = path.join(backupPath, 'cron');
     if (fs.existsSync(cronSrc)) {
         fs.mkdirSync(cronDest, { recursive: true });
         copyDir(cronSrc, cronDest);
+    }
+    
+    // Copy devices
+    const devicesSrc = path.join(OPENCLAW_DIR, 'devices');
+    const devicesDest = path.join(backupPath, 'devices');
+    if (fs.existsSync(devicesSrc)) {
+        fs.mkdirSync(devicesDest, { recursive: true });
+        copyDir(devicesSrc, devicesDest);
+    }
+    
+    // Copy identity
+    const identitySrc = path.join(OPENCLAW_DIR, 'identity');
+    const identityDest = path.join(backupPath, 'identity');
+    if (fs.existsSync(identitySrc)) {
+        fs.mkdirSync(identityDest, { recursive: true });
+        copyDir(identitySrc, identityDest);
+    }
+    
+    // Copy memory
+    const memorySrc = path.join(OPENCLAW_DIR, 'memory');
+    const memoryDest = path.join(backupPath, 'memory');
+    if (fs.existsSync(memorySrc)) {
+        fs.mkdirSync(memoryDest, { recursive: true });
+        copyDir(memorySrc, memoryDest);
+    }
+    
+    // Copy canvas
+    const canvasSrc = path.join(OPENCLAW_DIR, 'canvas');
+    const canvasDest = path.join(backupPath, 'canvas');
+    if (fs.existsSync(canvasSrc)) {
+        fs.mkdirSync(canvasDest, { recursive: true });
+        copyDir(canvasSrc, canvasDest);
+    }
+    
+    // Copy completions
+    const completionsSrc = path.join(OPENCLAW_DIR, 'completions');
+    const completionsDest = path.join(backupPath, 'completions');
+    if (fs.existsSync(completionsSrc)) {
+        fs.mkdirSync(completionsDest, { recursive: true });
+        copyDir(completionsSrc, completionsDest);
+    }
+    
+    // Copy media
+    const mediaSrc = path.join(OPENCLAW_DIR, 'media');
+    const mediaDest = path.join(backupPath, 'media');
+    if (fs.existsSync(mediaSrc)) {
+        fs.mkdirSync(mediaDest, { recursive: true });
+        copyDir(mediaSrc, mediaDest);
     }
     
     // Create tar.gz
@@ -341,6 +389,60 @@ async function restoreBackup(filename) {
             copyDir(cronSrc, cronDest);
         }
         
+        // Restore devices
+        restoreStatus.message = 'Restoring devices...';
+        const devicesSrc = path.join(extractedDir, 'devices');
+        const devicesDest = path.join(OPENCLAW_DIR, 'devices');
+        if (fs.existsSync(devicesSrc)) {
+            fs.mkdirSync(devicesDest, { recursive: true });
+            copyDir(devicesSrc, devicesDest);
+        }
+        
+        // Restore identity
+        restoreStatus.message = 'Restoring identity...';
+        const identitySrc = path.join(extractedDir, 'identity');
+        const identityDest = path.join(OPENCLAW_DIR, 'identity');
+        if (fs.existsSync(identitySrc)) {
+            fs.mkdirSync(identityDest, { recursive: true });
+            copyDir(identitySrc, identityDest);
+        }
+        
+        // Restore memory
+        restoreStatus.message = 'Restoring memory...';
+        const memorySrc = path.join(extractedDir, 'memory');
+        const memoryDest = path.join(OPENCLAW_DIR, 'memory');
+        if (fs.existsSync(memorySrc)) {
+            fs.mkdirSync(memoryDest, { recursive: true });
+            copyDir(memorySrc, memoryDest);
+        }
+        
+        // Restore canvas
+        restoreStatus.message = 'Restoring canvas...';
+        const canvasSrc = path.join(extractedDir, 'canvas');
+        const canvasDest = path.join(OPENCLAW_DIR, 'canvas');
+        if (fs.existsSync(canvasSrc)) {
+            fs.mkdirSync(canvasDest, { recursive: true });
+            copyDir(canvasSrc, canvasDest);
+        }
+        
+        // Restore completions
+        restoreStatus.message = 'Restoring completions...';
+        const completionsSrc = path.join(extractedDir, 'completions');
+        const completionsDest = path.join(OPENCLAW_DIR, 'completions');
+        if (fs.existsSync(completionsSrc)) {
+            fs.mkdirSync(completionsDest, { recursive: true });
+            copyDir(completionsSrc, completionsDest);
+        }
+        
+        // Restore media
+        restoreStatus.message = 'Restoring media...';
+        const mediaSrc = path.join(extractedDir, 'media');
+        const mediaDest = path.join(OPENCLAW_DIR, 'media');
+        if (fs.existsSync(mediaSrc)) {
+            fs.mkdirSync(mediaDest, { recursive: true });
+            copyDir(mediaSrc, mediaDest);
+        }
+        
         // Restore skills
         restoreStatus.message = 'Restoring skills...';
         const skillsSrc = path.join(extractedDir, 'skills');
@@ -415,7 +517,9 @@ function syncCrontab(schedules) {
     
     // Add new schedules
     enabledSchedules.forEach(schedule => {
-        const cronLine = `${schedule.cron} /home/cloudm9n/.openclaw/workspace/scripts/openclaw-backup.sh >> /home/cloudm9n/.openclaw/backups/backup.log 2>&1`;
+        const scriptPath = path.join(OPENCLAW_DIR, 'workspace/scripts/openclaw-backup.sh');
+        const logPath = path.join(OPENCLAW_DIR, 'backups/backup.log');
+        const cronLine = `${schedule.cron} ${scriptPath} >> ${logPath} 2>&1`;
         lines.push(cronLine);
     });
     
