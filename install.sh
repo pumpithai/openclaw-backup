@@ -36,8 +36,15 @@ mkdir -p "$BACKUP_DIR"
 
 # Check if port is in use
 if lsof -i :$PORT &> /dev/null; then
-    log_warn "Port $PORT is already in use. Using port $((PORT + 1)) instead."
+    log_warn "Port $PORT is already in use. Trying next port..."
     PORT=$((PORT + 1))
+    while lsof -i :$PORT &> /dev/null && PORT -lt 3850; do
+        PORT=$((PORT + 1))
+    done
+    if lsof -i :$PORT &> /dev/null; then
+        log_warn "No available port found between 3847-3850"
+        exit 1
+    fi
 fi
 
 # Create environment file
@@ -101,7 +108,15 @@ read -p "Start server now? (Y/n) " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
     cd "$SCRIPT_DIR"
-    PORT=$PORT node backup-server.js &
-    sleep 2
-    log_info "Server started!"
+    if lsof -i :$PORT &> /dev/null; then
+        log_warn "Port $PORT is still in use. Server may already be running."
+    else
+        PORT=$PORT node backup-server.js &
+        sleep 2
+        if lsof -i :$PORT &> /dev/null; then
+            log_info "Server started!"
+        else
+            log_warn "Server failed to start."
+        fi
+    fi
 fi
