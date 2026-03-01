@@ -17,6 +17,7 @@ const PORT = process.env.PORT || 3847;
 // Default config
 let config = {
     maxBackups: 10,
+    maxManualBackups: 10,
     maxBackupsSize: 0  // 0 = no limit
 };
 
@@ -38,8 +39,8 @@ function saveConfig() {
 function cleanupBackups() {
     if (config.maxBackups <= 0) return;
     
-    // Get all auto backups sorted by time
-    const autoFiles = fs.readdirSync(BACKUP_DIR)
+    // Get all backups sorted by time
+    const allFiles = fs.readdirSync(BACKUP_DIR)
         .filter(f => f.endsWith('.tar.gz'))
         .map(f => {
             const metaPath = path.join(BACKUP_DIR, f.replace('.tar.gz', '.json'));
@@ -58,9 +59,14 @@ function cleanupBackups() {
                 time: fs.statSync(path.join(BACKUP_DIR, f)).mtime.getTime()
             };
         })
-        .filter(f => f.type === 'auto')
         .sort((a, b) => b.time - a.time);
     
+    const maxManual = config.maxManualBackups || config.maxBackups;
+    
+    const autoFiles = allFiles.filter(f => f.type === 'auto');
+    const manualFiles = allFiles.filter(f => f.type === 'manual');
+    
+    // Cleanup auto backups over limit
     if (autoFiles.length > config.maxBackups) {
         const toDelete = autoFiles.slice(config.maxBackups);
         toDelete.forEach(f => {
@@ -70,6 +76,22 @@ function cleanupBackups() {
                     fs.unlinkSync(f.metaPath);
                 }
                 console.log('Deleted auto backup:', f.name);
+            } catch (e) {
+                console.error('Failed to delete:', f.name, e.message);
+            }
+        });
+    }
+    
+    // Cleanup manual backups over limit
+    if (manualFiles.length > maxManual) {
+        const toDelete = manualFiles.slice(maxManual);
+        toDelete.forEach(f => {
+            try {
+                fs.unlinkSync(f.path);
+                if (fs.existsSync(f.metaPath)) {
+                    fs.unlinkSync(f.metaPath);
+                }
+                console.log('Deleted manual backup:', f.name);
             } catch (e) {
                 console.error('Failed to delete:', f.name, e.message);
             }
@@ -267,9 +289,8 @@ async function createBackup(type = 'manual') {
     const metaPath = path.join(BACKUP_DIR, `${backupName}.json`);
     fs.writeFileSync(metaPath, JSON.stringify({ type, created: new Date().toISOString() }));
     
-    // Cleanup old backups (only auto)
-    if (type === 'auto') {
-        cleanupBackups();
+    // Cleanup old backups
+    cleanupBackups();
     }
     
     return `${backupName}.tar.gz`;
