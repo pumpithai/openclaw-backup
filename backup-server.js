@@ -549,7 +549,10 @@ function syncCrontab(schedules) {
     // Write new crontab
     const newCrontab = lines.filter(l => l.trim()).join('\n') + '\n';
     try {
-        execSync(`printf '%s\n' "${newCrontab}" | crontab -`, { stdio: 'pipe' });
+        const proc = require('child_process').spawn('crontab', ['-']);
+        proc.stdin.write(newCrontab);
+        proc.stdin.end();
+    } catch (e) {
     } catch (e) {
         console.error('Failed to update crontab:', e.message);
     }
