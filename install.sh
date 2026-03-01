@@ -37,14 +37,9 @@ mkdir -p "$BACKUP_DIR"
 # Check if port is in use
 if lsof -i :$PORT &> /dev/null; then
     log_warn "Port $PORT is already in use. Trying next port..."
-    PORT=$((PORT + 1))
-    while lsof -i :$PORT &> /dev/null && PORT -lt 3850; do
+    while lsof -i :$PORT &> /dev/null 2>&1 && PORT -lt 3850; do
         PORT=$((PORT + 1))
     done
-    if lsof -i :$PORT &> /dev/null; then
-        log_warn "No available port found between 3847-3850"
-        exit 1
-    fi
 fi
 
 # Create environment file
