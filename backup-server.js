@@ -553,7 +553,6 @@ function syncCrontab(schedules) {
         proc.stdin.write(newCrontab);
         proc.stdin.end();
     } catch (e) {
-    } catch (e) {
         console.error('Failed to update crontab:', e.message);
     }
 }
