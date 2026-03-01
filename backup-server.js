@@ -519,23 +519,10 @@ function syncCrontab(schedules) {
         !line.includes('openclaw-backup.sh')
     );
     
-    // Add new schedules
+    // Add new schedules (use curl to call API for proper cleanup)
     enabledSchedules.forEach(schedule => {
-        const possiblePaths = [
-            path.join(OPENCLAW_DIR, 'workspace/scripts/openclaw-backup.sh'),
-            path.join(OPENCLAW_DIR, 'openclaw-backup/openclaw-backup.sh'),
-            path.join(path.dirname(__dirname), 'openclaw-backup/openclaw-backup.sh')
-        ];
-        
-        let scriptPath = possiblePaths.find(p => fs.existsSync(p));
-        
-        if (!scriptPath) {
-            console.error('Could not find openclaw-backup.sh');
-            return;
-        }
-        
         const logPath = path.join(OPENCLAW_DIR, 'backups/backup.log');
-        const cronLine = `${schedule.cron} "${scriptPath}" --auto >> "${logPath}" 2>&1`;
+        const cronLine = `${schedule.cron} curl -s -X POST http://localhost:${PORT}/api/backup/create -H "Content-Type: application/json" -d '{"type":"auto"}' >> "${logPath}" 2>&1`;
         lines.push(cronLine);
     });
     
