@@ -523,7 +523,7 @@ function syncCrontab(schedules) {
     enabledSchedules.forEach(schedule => {
         const scriptPath = path.join(OPENCLAW_DIR, 'workspace/scripts/openclaw-backup.sh');
         const logPath = path.join(OPENCLAW_DIR, 'backups/backup.log');
-        const cronLine = `${schedule.cron} ${scriptPath} >> ${logPath} 2>&1`;
+        const cronLine = `${schedule.cron} ${scriptPath} --auto >> ${logPath} 2>&1`;
         lines.push(cronLine);
     });
     

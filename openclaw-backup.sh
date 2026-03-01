@@ -8,6 +8,7 @@ HOME_DIR="${HOME:-$HOME}"
 OPENCLAW_DIR="${OPENCLAW_DIR:-$HOME_DIR/.openclaw}"
 BACKUP_DIR="${BACKUP_DIR:-$OPENCLAW_DIR/backups}"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+BACKUP_TYPE="manual"
 BACKUP_NAME="openclaw_backup_${TIMESTAMP}"
 BACKUP_PATH="${BACKUP_DIR}/${BACKUP_NAME}"
 
@@ -276,6 +277,12 @@ case "${1:-}" in
         ;;
     --list|-l)
         list_backups
+        ;;
+    --auto|-a)
+        BACKUP_TYPE="auto"
+        BACKUP_NAME="openclaw_${BACKUP_TYPE}_backup_${TIMESTAMP}"
+        BACKUP_PATH="${BACKUP_DIR}/${BACKUP_NAME}"
+        backup
         ;;
     *)
         backup
