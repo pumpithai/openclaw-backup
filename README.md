@@ -18,6 +18,10 @@ Web UI และ CLI สำหรับ backup และ restore OpenClaw data
 # Clone or copy to ~/.openclaw/workspace/scripts/
 git clone https://github.com/pumpithai/openclaw-scripts.git
 cd openclaw-scripts/scripts
+
+# Run installer
+chmod +x install.sh
+./install.sh
 ```
 
 ## Usage
@@ -25,11 +29,11 @@ cd openclaw-scripts/scripts
 ### Web UI
 
 ```bash
-# Start server
-node backup-server.js
+# Start server (or use ./install.sh to install first)
+./start.sh
 
 # Or with custom port
-PORT=4000 node backup-server.js
+./install.sh 4000
 ```
 
 Then open: `http://localhost:3847`
