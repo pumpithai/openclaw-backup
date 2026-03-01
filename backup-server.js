@@ -17,7 +17,6 @@ const PORT = process.env.PORT || 3847;
 // Default config
 let config = {
     maxBackups: 10,
-    maxManualBackups: 10,
     maxBackupsSize: 0  // 0 = no limit
 };
 
@@ -39,7 +38,7 @@ function saveConfig() {
 function cleanupBackups() {
     if (config.maxBackups <= 0) return;
     
-    // Get all backups sorted by time
+    // Get all auto backups sorted by time
     const allFiles = fs.readdirSync(BACKUP_DIR)
         .filter(f => f.endsWith('.tar.gz'))
         .map(f => {
@@ -61,10 +60,7 @@ function cleanupBackups() {
         })
         .sort((a, b) => b.time - a.time);
     
-    const maxManual = config.maxManualBackups || config.maxBackups;
-    
     const autoFiles = allFiles.filter(f => f.type === 'auto');
-    const manualFiles = allFiles.filter(f => f.type === 'manual');
     
     // Cleanup auto backups over limit
     if (autoFiles.length > config.maxBackups) {
@@ -76,22 +72,6 @@ function cleanupBackups() {
                     fs.unlinkSync(f.metaPath);
                 }
                 console.log('Deleted auto backup:', f.name);
-            } catch (e) {
-                console.error('Failed to delete:', f.name, e.message);
-            }
-        });
-    }
-    
-    // Cleanup manual backups over limit
-    if (manualFiles.length > maxManual) {
-        const toDelete = manualFiles.slice(maxManual);
-        toDelete.forEach(f => {
-            try {
-                fs.unlinkSync(f.path);
-                if (fs.existsSync(f.metaPath)) {
-                    fs.unlinkSync(f.metaPath);
-                }
-                console.log('Deleted manual backup:', f.name);
             } catch (e) {
                 console.error('Failed to delete:', f.name, e.message);
             }
