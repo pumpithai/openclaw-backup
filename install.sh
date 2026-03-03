@@ -44,7 +44,7 @@ mkdir -p "$BACKUP_DIR"
 # Check if port is in use
 if lsof -i :$PORT &> /dev/null; then
     log_warn "Port $PORT is already in use. Trying next port..."
-    while lsof -i :$PORT &> /dev/null 2>&1 && PORT -lt 3850; do
+    while lsof -i :$PORT &> /dev/null 2>&1 && (( PORT < 3850 )); do
         PORT=$((PORT + 1))
     done
 fi
@@ -61,6 +61,10 @@ cat > "$SCRIPT_DIR/start.sh" << EOF
 SCRIPT_DIR="\$(cd "\$(dirname "\$0")" && pwd)"
 source "\$SCRIPT_DIR/.env"
 cd "\$SCRIPT_DIR"
+
+pkill -f 'node backup-server.js' 2>/dev/null || true
+sleep 1
+
 exec node backup-server.js
 EOF
 chmod +x "$SCRIPT_DIR/start.sh"

@@ -79,6 +79,9 @@ function cleanupBackups() {
     }
 }
 
+// Ensure backup directory exists before any file operations
+fs.mkdirSync(BACKUP_DIR, { recursive: true });
+
 loadConfig();
 
 // Restore status tracking
@@ -90,9 +93,6 @@ let restoreStatus = {
     completed: false,
     error: null
 };
-
-// Ensure backup directory exists
-fs.mkdirSync(BACKUP_DIR, { recursive: true });
 
 // MIME types
 const mimeTypes = {
@@ -463,9 +463,64 @@ async function restoreBackup(filename) {
         // Restore gateway service
         restoreStatus.message = 'Setting up gateway...';
         const currentUser = os.userInfo().username;
-        await execPromise(`chown -R ${currentUser}:${currentUser} ${OPENCLAW_DIR}`);
-        await execPromise('openclaw gateway install');
-        await execPromise('systemctl --user start openclaw-gateway.service');
+        const currentGroup = process.platform === 'darwin' ? 'staff' : currentUser;
+        await execPromise(`chown -R ${currentUser}:${currentGroup} ${OPENCLAW_DIR}`);
+        
+        // Update openclaw.json with correct paths FIRST
+        const configPath = path.join(OPENCLAW_DIR, 'openclaw.json');
+        if (fs.existsSync(configPath)) {
+            try {
+                let configContent = fs.readFileSync(configPath, 'utf8');
+                
+                if (configContent.includes('/home/') || configContent.includes('/Users/')) {
+                    configContent = configContent.replace(/\/home\/[^\/]+/g, os.homedir());
+                    configContent = configContent.replace(/\/Users\/[^\/]+/g, os.homedir());
+                    fs.writeFileSync(configPath, configContent);
+                    console.log('Updated openclaw.json paths');
+                }
+            } catch (e) {
+                console.log('Failed to update openclaw.json:', e.message);
+            }
+        }
+        
+        // Update status for gateway setup steps
+        try {
+            restoreStatus.message = 'Fixing config paths...';
+            restoreStatus.progress = 92;
+            
+            // Update openclaw.json with correct paths FIRST
+            const configPath = path.join(OPENCLAW_DIR, 'openclaw.json');
+            if (fs.existsSync(configPath)) {
+                try {
+                    let configContent = fs.readFileSync(configPath, 'utf8');
+                    
+                    if (configContent.includes('/home/') || configContent.includes('/Users/')) {
+                        configContent = configContent.replace(/\/home\/[^\/]+/g, os.homedir());
+                        configContent = configContent.replace(/\/Users\/[^\/]+/g, os.homedir());
+                        fs.writeFileSync(configPath, configContent);
+                        console.log('Updated openclaw.json paths');
+                    }
+                } catch (e) {
+                    console.log('Failed to update openclaw.json:', e.message);
+                }
+            }
+            
+            restoreStatus.message = 'Running openclaw doctor --fix...';
+            restoreStatus.progress = 94;
+            await execPromise('openclaw doctor --fix');
+            
+            restoreStatus.message = 'Installing gateway...';
+            restoreStatus.progress = 96;
+            await execPromise('openclaw gateway install');
+            
+            if (process.platform !== 'darwin') {
+                restoreStatus.message = 'Starting gateway service...';
+                restoreStatus.progress = 98;
+                await execPromise('systemctl --user start openclaw-gateway.service');
+            }
+        } catch (e) {
+            console.log('Gateway setup skipped:', e.message);
+        }
         
         // Sync crontab after restore
         const schedules = listSchedules();
