@@ -13,7 +13,7 @@ const SCRIPT_DIR = __dirname;
 const BACKUP_DIR = process.env.BACKUP_DIR || path.join(OPENCLAW_DIR, 'backups');
 const CRON_DIR = process.env.CRON_DIR || path.join(OPENCLAW_DIR, 'cron');
 const CONFIG_FILE = path.join(SCRIPT_DIR, 'config.json');
-const PORT = process.env.PORT || 3847;
+const PORT = process.env.PORT || 4000;
 
 // Default config (all in one file)
 let allConfig = {
@@ -703,6 +703,13 @@ const server = http.createServer(async (req, res) => {
             fs.unlinkSync(filepath);
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: true }));
+            return;
+        }
+        
+        // GET /api/backup/hostname
+        if (req.method === 'GET' && pathname === '/api/backup/hostname') {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ hostname: os.hostname() }));
             return;
         }
         

@@ -452,7 +452,7 @@
                     <span style="color: var(--accent);">~</span>
                     <h1>openclaw-backup</h1>
                 </div>
-                <div class="header-subtitle">// backup & restore system</div>
+                <div class="header-subtitle" id="hostname">// loading...</div>
             </div>
             <div style="display: flex; gap: 10px;">
                 <button class="btn btn-primary" onclick="createBackup()">> run backup</button>
@@ -982,9 +982,16 @@
         });
         
         // Init
+        fetch(API + '/hostname').then(r => r.json()).then(d => {
+            document.getElementById('hostname').textContent = '// ' + d.hostname;
+        });
         loadOptions();
         refreshBackups();
         refreshSchedules();
+        
+        setInterval(function() {
+            refreshBackups(currentPage);
+        }, 30000);
     </script>
 </body>
 </html>

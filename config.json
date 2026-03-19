@@ -1,0 +1,27 @@
+{
+  "maxBackups": 10,
+  "maxBackupsSize": 0,
+  "patterns": [
+    ".log",
+    ".tmp",
+    ".temp",
+    ".cache",
+    ".bak",
+    "_bak",
+    ".DS_Store",
+    "Thumbs.db",
+    "*.log",
+    "*.tmp",
+    "backup",
+    "backups",
+    "*temp*"
+  ],
+  "schedules": [
+    {
+      "id": "backup_1773936897119",
+      "cron": "* * * * *",
+      "enabled": true,
+      "created": "2026-03-19T16:14:57.119Z"
+    }
+  ]
+}
