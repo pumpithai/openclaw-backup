@@ -141,6 +141,53 @@
             color: var(--bg);
         }
         
+        .btn-icon {
+            width: 24px;
+            height: 24px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: transparent;
+            color: var(--text-dim);
+            font-family: inherit;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .btn-icon:hover {
+            border-color: var(--red);
+            color: var(--red);
+        }
+        
+        .log-entry {
+            padding: 6px 12px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            gap: 10px;
+        }
+        
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+        
+        .log-time {
+            color: var(--text-dim);
+            white-space: nowrap;
+        }
+        
+        .log-level {
+            width: 50px;
+            font-weight: 600;
+        }
+        
+        .log-level.info { color: var(--cyan); }
+        .log-level.warn { color: var(--yellow); }
+        .log-level.error { color: var(--red); }
+        
+        .log-message { flex: 1; }
+        
         .btn-row {
             display: flex;
             gap: 12px;
@@ -440,6 +487,128 @@
         }
         
         .hidden { display: none !important; }
+        
+        /* Restore Dialog */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        
+        .modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            width: 400px;
+            max-width: 90%;
+        }
+        
+        .modal-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .modal-header h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+        }
+        
+        .modal-body {
+            padding: 20px 16px;
+        }
+        
+        .restore-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .restore-step:last-child {
+            border-bottom: none;
+        }
+        
+        .restore-step-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            flex-shrink: 0;
+            background: rgba(255,255,255,0.05);
+            color: var(--text-dim);
+        }
+        
+        .restore-step-icon.done {
+            background: var(--green);
+            color: var(--bg);
+        }
+        
+        .restore-step-icon.active {
+            background: var(--accent);
+            color: var(--bg);
+            animation: pulse 1s infinite;
+        }
+        
+        .restore-step-icon.pending {
+            background: rgba(255,255,255,0.05);
+            color: var(--text-dim);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .restore-step-content {
+            flex: 1;
+        }
+        
+        .restore-step-label {
+            font-size: 13px;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+        
+        .restore-step-message {
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+        
+        .restore-progress-bar {
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 16px;
+        }
+        
+        .restore-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--green));
+            transition: width 0.3s;
+        }
+        
+        .modal-footer {
+            padding: 12px 16px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+        }
     </style>
 </head>
 <body>
@@ -589,6 +758,20 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- Event Log Card -->
+                <div class="card" style="margin-top: 20px;">
+                    <div class="card-header">
+                        <div class="dot red"></div>
+                        <div class="dot yellow"></div>
+                        <div class="dot green"></div>
+                        <h2>event log</h2>
+                        <button class="btn-icon" onclick="clearLog()" style="margin-left: auto;" title="Clear log">x</button>
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <div id="eventLog" style="max-height: 150px; overflow-y: auto; font-size: 12px; line-height: 1.4;"></div>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -597,10 +780,93 @@
         </footer>
     </div>
 
+    <!-- Restore Progress Dialog -->
+    <div class="modal-overlay" id="restoreModal" style="display: none;">
+        <div class="modal">
+            <div class="modal-header">
+                <span style="color: var(--cyan);">[~]</span>
+                <h3 id="restoreModalTitle">Restoring backup...</h3>
+            </div>
+            <div class="modal-body" id="restoreModalBody">
+                <div class="restore-step" id="step-extract">
+                    <div class="restore-step-icon pending" id="icon-extract">[ ]</div>
+                    <div class="restore-step-content">
+                        <div class="restore-step-label">Extracting backup</div>
+                        <div class="restore-step-message" id="msg-extract">Waiting...</div>
+                    </div>
+                </div>
+                <div class="restore-step" id="step-config">
+                    <div class="restore-step-icon pending" id="icon-config">[ ]</div>
+                    <div class="restore-step-content">
+                        <div class="restore-step-label">Restoring config</div>
+                        <div class="restore-step-message" id="msg-config">Waiting...</div>
+                    </div>
+                </div>
+                <div class="restore-step" id="step-workspace">
+                    <div class="restore-step-icon pending" id="icon-workspace">[ ]</div>
+                    <div class="restore-step-content">
+                        <div class="restore-step-label">Restoring workspace</div>
+                        <div class="restore-step-message" id="msg-workspace">Waiting...</div>
+                    </div>
+                </div>
+                <div class="restore-step" id="step-credentials">
+                    <div class="restore-step-icon pending" id="icon-credentials">[ ]</div>
+                    <div class="restore-step-content">
+                        <div class="restore-step-label">Restoring credentials</div>
+                        <div class="restore-step-message" id="msg-credentials">Waiting...</div>
+                    </div>
+                </div>
+                <div class="restore-step" id="step-agents">
+                    <div class="restore-step-icon pending" id="icon-agents">[ ]</div>
+                    <div class="restore-step-content">
+                        <div class="restore-step-label">Restoring agents</div>
+                        <div class="restore-step-message" id="msg-agents">Waiting...</div>
+                    </div>
+                </div>
+                <div class="restore-step" id="step-telegram">
+                    <div class="restore-step-icon pending" id="icon-telegram">[ ]</div>
+                    <div class="restore-step-content">
+                        <div class="restore-step-label">Restoring telegram</div>
+                        <div class="restore-step-message" id="msg-telegram">Waiting...</div>
+                    </div>
+                </div>
+                <div class="restore-step" id="step-cron">
+                    <div class="restore-step-icon pending" id="icon-cron">[ ]</div>
+                    <div class="restore-step-content">
+                        <div class="restore-step-label">Restoring cron</div>
+                        <div class="restore-step-message" id="msg-cron">Waiting...</div>
+                    </div>
+                </div>
+                <div class="restore-step" id="step-devices">
+                    <div class="restore-step-icon pending" id="icon-devices">[ ]</div>
+                    <div class="restore-step-content">
+                        <div class="restore-step-label">Restoring devices</div>
+                        <div class="restore-step-message" id="msg-devices">Waiting...</div>
+                    </div>
+                </div>
+                <div class="restore-step" id="step-finish">
+                    <div class="restore-step-icon pending" id="icon-finish">[ ]</div>
+                    <div class="restore-step-content">
+                        <div class="restore-step-label">Finishing</div>
+                        <div class="restore-step-message" id="msg-finish">Waiting...</div>
+                    </div>
+                </div>
+                <div class="restore-progress-bar">
+                    <div class="restore-progress-fill" id="restoreProgressFill" style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="modal-footer" id="restoreModalFooter">
+                <button class="btn btn-danger" onclick="cancelRestore()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const API = '/api/backup';
         let folders = [];
         let selectedFolders = new Set();
+        let restoreStatusInterval = null;
+        let restoreCancelled = false;
         
         function showToast(msg, type = 'success') {
             const c = document.getElementById('toastContainer');
@@ -609,6 +875,44 @@
             t.textContent = msg;
             c.appendChild(t);
             setTimeout(function() { t.remove(); }, 3000);
+        }
+        
+        let logInterval = null;
+        
+        function fetchLogs() {
+            fetch(API + '/logs')
+                .then(r => r.json())
+                .then(data => {
+                    const container = document.getElementById('eventLog');
+                    if (!container) return;
+                    
+                    const currentScroll = container.scrollTop;
+                    const isAtBottom = container.scrollHeight - container.clientHeight - currentScroll < 10;
+                    
+                    container.innerHTML = data.logs.map(entry => {
+                        const time = new Date(entry.timestamp).toLocaleTimeString('th-TH');
+                        return `<div class="log-entry">
+                            <span class="log-time">${time}</span>
+                            <span class="log-level ${entry.level}">${entry.level.toUpperCase()}</span>
+                            <span class="log-message">${entry.message}</span>
+                        </div>`;
+                    }).join('');
+                    
+                    if (isAtBottom) {
+                        container.scrollTop = container.scrollHeight;
+                    }
+                })
+                .catch(() => {});
+        }
+        
+        function clearLog() {
+            fetch(API + '/logs', { method: 'DELETE' })
+                .then(fetchLogs);
+        }
+        
+        function startLogPolling() {
+            fetchLogs();
+            logInterval = setInterval(fetchLogs, 2000);
         }
         
         function formatSize(bytes) {
@@ -835,15 +1139,172 @@
         
         async function restoreBackup(name) {
             if (!confirm('restore "' + name + '"?\n\nThis will overwrite current data!')) return;
+            
+            restoreCancelled = false;
+            document.getElementById('restoreModalTitle').textContent = 'Restoring: ' + name;
+            document.getElementById('restoreModal').style.display = 'flex';
+            document.getElementById('restoreModalFooter').innerHTML = '<button class="btn btn-danger" onclick="cancelRestore()">Cancel</button>';
+            
+            resetRestoreSteps();
+            
             try {
-                await fetch(API + '/restore', {
+                var res = await fetch(API + '/restore', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ filename: name })
                 });
-                showToast('restore started...');
+                var data = await res.json();
+                
+                if (!data.success) {
+                    showRestoreError(data.error || 'Failed to start restore');
+                    return;
+                }
+                
+                pollRestoreStatus();
+                
             } catch (e) {
-                showToast(e.message, 'error');
+                showRestoreError(e.message);
+            }
+        }
+        
+        function resetRestoreSteps() {
+            var steps = ['extract', 'config', 'workspace', 'credentials', 'agents', 'telegram', 'cron', 'devices', 'finish'];
+            steps.forEach(function(step) {
+                var icon = document.getElementById('icon-' + step);
+                var msg = document.getElementById('msg-' + step);
+                if (icon) {
+                    icon.className = 'restore-step-icon pending';
+                    icon.textContent = '[ ]';
+                }
+                if (msg) msg.textContent = 'Waiting...';
+            });
+            document.getElementById('restoreProgressFill').style.width = '0%';
+        }
+        
+        function updateRestoreStep(message, progress) {
+            var lowerMsg = message.toLowerCase();
+            var stepOrder = ['extract', 'config', 'workspace', 'credentials', 'agents', 'telegram', 'cron', 'devices', 'finish'];
+            var currentIndex = -1;
+            
+            if (lowerMsg.includes('extract')) {
+                currentIndex = 0;
+            } else if (lowerMsg.includes('config')) {
+                currentIndex = 1;
+            } else if (lowerMsg.includes('workspace')) {
+                currentIndex = 2;
+            } else if (lowerMsg.includes('credential')) {
+                currentIndex = 3;
+            } else if (lowerMsg.includes('agent')) {
+                currentIndex = 4;
+            } else if (lowerMsg.includes('telegram')) {
+                currentIndex = 5;
+            } else if (lowerMsg.includes('cron')) {
+                currentIndex = 6;
+            } else if (lowerMsg.includes('device')) {
+                currentIndex = 7;
+            } else if (lowerMsg.includes('complet') || lowerMsg.includes('finish') || lowerMsg.includes('done') || lowerMsg.includes('success')) {
+                currentIndex = 8;
+            }
+            
+            for (var i = 0; i < stepOrder.length; i++) {
+                var icon = document.getElementById('icon-' + stepOrder[i]);
+                if (i < currentIndex) {
+                    icon.className = 'restore-step-icon done';
+                    icon.textContent = '[✓]';
+                } else if (i === currentIndex) {
+                    icon.className = 'restore-step-icon active';
+                    icon.textContent = '[~]';
+                    var msg = document.getElementById('msg-' + stepOrder[i]);
+                    if (msg) msg.textContent = message;
+                } else {
+                    icon.className = 'restore-step-icon pending';
+                    icon.textContent = '[ ]';
+                }
+            }
+            
+            if (progress !== undefined) {
+                document.getElementById('restoreProgressFill').style.width = progress + '%';
+            }
+        }
+        
+        function pollRestoreStatus() {
+            if (restoreCancelled) return;
+            
+            fetch(API + '/restore/status')
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    if (restoreCancelled) return;
+                    
+                    updateRestoreStep(data.message || 'Processing...', data.progress);
+                    
+                    if (data.error) {
+                        showRestoreError(data.error);
+                        return;
+                    }
+                    
+                    if (data.completed) {
+                        var icon = document.getElementById('icon-finish');
+                        icon.className = 'restore-step-icon done';
+                        icon.textContent = '[✓]';
+                        document.getElementById('msg-finish').textContent = 'Restore completed!';
+                        document.getElementById('restoreProgressFill').style.width = '100%';
+                        document.getElementById('restoreModalTitle').textContent = 'Restore Complete!';
+                        document.getElementById('restoreModalFooter').innerHTML = '<button class="btn btn-primary" onclick="closeRestoreModal()">Close</button>';
+                        showToast('restore completed successfully!');
+                        
+                        if (restoreStatusInterval) {
+                            clearInterval(restoreStatusInterval);
+                            restoreStatusInterval = null;
+                        }
+                        return;
+                    }
+                    
+                    if (data.inProgress) {
+                        restoreStatusInterval = setTimeout(pollRestoreStatus, 500);
+                    }
+                })
+                .catch(function(e) {
+                    if (!restoreCancelled) {
+                        showRestoreError(e.message);
+                    }
+                });
+        }
+        
+        function showRestoreError(error) {
+            if (restoreStatusInterval) {
+                clearInterval(restoreStatusInterval);
+                restoreStatusInterval = null;
+            }
+            
+            document.getElementById('restoreModalTitle').textContent = 'Restore Failed!';
+            var allSteps = ['extract', 'config', 'workspace', 'credentials', 'agents', 'telegram', 'cron', 'devices', 'finish'];
+            allSteps.forEach(function(step) {
+                var icon = document.getElementById('icon-' + step);
+                if (icon && icon.className.indexOf('done') === -1 && icon.className.indexOf('active') === -1) {
+                    icon.className = 'restore-step-icon';
+                    icon.textContent = '[x]';
+                }
+            });
+            document.getElementById('msg-finish').textContent = 'Error: ' + error;
+            document.getElementById('restoreModalFooter').innerHTML = '<button class="btn btn-danger" onclick="closeRestoreModal()">Close</button>';
+            showToast('restore failed: ' + error, 'error');
+        }
+        
+        function cancelRestore() {
+            restoreCancelled = true;
+            if (restoreStatusInterval) {
+                clearInterval(restoreStatusInterval);
+                restoreStatusInterval = null;
+            }
+            closeRestoreModal();
+            showToast('restore cancelled', 'error');
+        }
+        
+        function closeRestoreModal() {
+            document.getElementById('restoreModal').style.display = 'none';
+            if (restoreStatusInterval) {
+                clearInterval(restoreStatusInterval);
+                restoreStatusInterval = null;
             }
         }
         
@@ -991,6 +1452,7 @@
         loadOptions();
         refreshBackups();
         refreshSchedules();
+        startLogPolling();
         
         setInterval(function() {
             refreshBackups(currentPage);

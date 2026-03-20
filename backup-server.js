@@ -11,6 +11,106 @@ const HOME_DIR = os.homedir();
 const OPENCLAW_DIR = path.join(HOME_DIR, '.openclaw');
 const SCRIPT_DIR = __dirname;
 const BACKUP_DIR = process.env.BACKUP_DIR || path.join(OPENCLAW_DIR, 'backups');
+
+const LOG_DIR = path.join(SCRIPT_DIR, 'logs');
+const LOG_FILE = path.join(LOG_DIR, 'app.log');
+const MAX_LOG_LINES = 500;
+
+let eventLog = [];
+
+function ensureLogDir() {
+    if (!fs.existsSync(LOG_DIR)) {
+        fs.mkdirSync(LOG_DIR, { recursive: true });
+    }
+}
+
+function log(level, message, data = null) {
+    const timestamp = new Date().toISOString();
+    const entry = {
+        timestamp,
+        level,
+        message,
+        data
+    };
+    
+    eventLog.unshift(entry);
+    if (eventLog.length > MAX_LOG_LINES) {
+        eventLog = eventLog.slice(0, MAX_LOG_LINES);
+    }
+    
+    const logLine = data 
+        ? `[${timestamp}] [${level}] ${message} ${JSON.stringify(data)}`
+        : `[${timestamp}] [${level}] ${message}`;
+    
+    ensureLogDir();
+    fs.appendFileSync(LOG_FILE, logLine + '\n');
+    
+    if (level === 'error') {
+        console.error(logLine);
+    } else {
+        console.log(logLine);
+    }
+    
+    return entry;
+}
+
+function parseMultipart(buffer, boundary) {
+    const boundaryBuffer = Buffer.from('--' + boundary);
+    const endBoundaryBuffer = Buffer.from('--' + boundary + '--');
+    
+    let start = 0;
+    let parts = [];
+    
+    while (start < buffer.length) {
+        let boundaryIdx = buffer.indexOf(boundaryBuffer, start);
+        if (boundaryIdx === -1) break;
+        
+        if (buffer.compare(boundaryBuffer, 0, boundaryBuffer.length, boundaryIdx, boundaryIdx + boundaryBuffer.length) === 0) {
+            if (buffer.compare(endBoundaryBuffer, 0, endBoundaryBuffer.length, boundaryIdx, boundaryIdx + endBoundaryBuffer.length) === 0) {
+                break;
+            }
+            
+            let nextBoundaryIdx = buffer.indexOf(boundaryBuffer, boundaryIdx + boundaryBuffer.length);
+            if (nextBoundaryIdx === -1) break;
+            
+            let partStart = boundaryIdx + boundaryBuffer.length;
+            while (partStart < nextBoundaryIdx && buffer[partStart] === 0x0D) partStart++;
+            if (partStart < nextBoundaryIdx && buffer[partStart] === 0x0A) partStart++;
+            
+            let partEnd = nextBoundaryIdx - 2;
+            while (partEnd > partStart && (buffer[partEnd] === 0x0D || buffer[partEnd] === 0x0A)) partEnd--;
+            partEnd++;
+            
+            let headerEndIdx = buffer.indexOf(Buffer.from('\r\n\r\n'), partStart);
+            if (headerEndIdx !== -1 && headerEndIdx < partEnd) {
+                let contentStart = headerEndIdx + 4;
+                let content = buffer.slice(contentStart, partEnd);
+                
+                let header = buffer.slice(partStart, contentStart).toString();
+                let filenameMatch = header.match(/filename="([^"]+)"/);
+                
+                if (filenameMatch) {
+                    parts.push({
+                        filename: filenameMatch[1],
+                        data: content
+                    });
+                }
+            }
+            
+            start = nextBoundaryIdx;
+        } else {
+            start = boundaryIdx + 1;
+        }
+    }
+    
+    return parts;
+}
+
+function isValidGzip(buffer) {
+    if (buffer.length < 2) return false;
+    return buffer[0] === 0x1f && buffer[1] === 0x8b;
+}
+
 const CRON_DIR = process.env.CRON_DIR || path.join(OPENCLAW_DIR, 'cron');
 const CONFIG_FILE = path.join(SCRIPT_DIR, 'config.json');
 const PORT = process.env.PORT || 4000;
@@ -270,158 +370,38 @@ async function restoreBackup(filename) {
     
     const tarPath = path.join(BACKUP_DIR, filename);
     if (!fs.existsSync(tarPath)) {
+        log('error', `Backup file not found: ${filename}`);
         restoreStatus = { ...restoreStatus, inProgress: false, error: 'Backup file not found', message: 'Error: File not found' };
         throw new Error('Backup file not found');
     }
     
+    const fileBuffer = fs.readFileSync(tarPath);
+    if (!isValidGzip(fileBuffer)) {
+        log('error', `Invalid gzip format: ${filename}`);
+        restoreStatus = { ...restoreStatus, inProgress: false, error: 'Invalid gzip format', message: 'Error: Invalid backup file format' };
+        throw new Error('Invalid gzip format - file may be corrupted');
+    }
+    
     try {
-        // Extract to temp
         restoreStatus.message = 'Extracting backup...';
         restoreStatus.progress = 10;
+        log('info', 'Extracting backup archive...');
         const tempDir = path.join(BACKUP_DIR, 'temp_restore_' + Date.now());
         fs.mkdirSync(tempDir, { recursive: true });
         
         await execPromise(`tar -xzf "${tarPath}" -C "${tempDir}"`);
         
-        // Find extracted folder
         const items = fs.readdirSync(tempDir);
         const extractedDir = path.join(tempDir, items[0]);
         
-        // Restore config
-        restoreStatus.message = 'Restoring config...';
-        restoreStatus.progress = 20;
-        const configSrc = path.join(extractedDir, 'openclaw.json');
-        const configDest = path.join(OPENCLAW_DIR, 'openclaw.json');
-        if (fs.existsSync(configSrc)) {
-            fs.copyFileSync(configSrc, configDest);
-        }
+        restoreStatus.message = 'Restoring all files...';
+        restoreStatus.progress = 50;
+        log('info', 'Restoring all files...');
         
-        // Restore workspace
-        restoreStatus.message = 'Restoring workspace...';
-        restoreStatus.progress = 40;
-        const workspaceSrc = path.join(extractedDir, 'workspace');
-        const workspaceDest = path.join(OPENCLAW_DIR, 'workspace');
-        if (fs.existsSync(workspaceSrc)) {
-            if (fs.existsSync(workspaceDest)) {
-                fs.rmSync(workspaceDest, { recursive: true });
-            }
-            fs.mkdirSync(workspaceDest, { recursive: true });
-            copyDir(workspaceSrc, workspaceDest, ['.git']);
-        }
+        await execPromise(`rsync -a --exclude='backups' --exclude='backups/*' '${extractedDir}/' '${OPENCLAW_DIR}/'`);
         
-        // Restore credentials
-        restoreStatus.message = 'Restoring credentials...';
-        restoreStatus.progress = 55;
-        const credsSrc = path.join(extractedDir, 'credentials');
-        const credsDest = path.join(OPENCLAW_DIR, 'credentials');
-        if (fs.existsSync(credsSrc)) {
-            fs.mkdirSync(credsDest, { recursive: true });
-            copyDir(credsSrc, credsDest);
-        }
-        
-        // Restore agents
-        restoreStatus.message = 'Restoring agents...';
-        restoreStatus.progress = 70;
-        const agentsSrc = path.join(extractedDir, 'agents');
-        const agentsDest = path.join(OPENCLAW_DIR, 'agents');
-        if (fs.existsSync(agentsSrc)) {
-            fs.mkdirSync(agentsDest, { recursive: true });
-            copyDir(agentsSrc, agentsDest);
-        }
-        
-        // Restore telegram
-        restoreStatus.message = 'Restoring telegram...';
-        restoreStatus.progress = 85;
-        const telegramSrc = path.join(extractedDir, 'telegram');
-        const telegramDest = path.join(OPENCLAW_DIR, 'telegram');
-        if (fs.existsSync(telegramSrc)) {
-            fs.mkdirSync(telegramDest, { recursive: true });
-            copyDir(telegramSrc, telegramDest);
-        }
-        
-        // Restore cron
-        restoreStatus.message = 'Restoring cron...';
-        restoreStatus.progress = 95;
-        const cronSrc = path.join(extractedDir, 'cron');
-        const cronDest = path.join(OPENCLAW_DIR, 'cron');
-        if (fs.existsSync(cronSrc)) {
-            fs.mkdirSync(cronDest, { recursive: true });
-            copyDir(cronSrc, cronDest);
-        }
-        
-        // Restore devices
-        restoreStatus.message = 'Restoring devices...';
-        const devicesSrc = path.join(extractedDir, 'devices');
-        const devicesDest = path.join(OPENCLAW_DIR, 'devices');
-        if (fs.existsSync(devicesSrc)) {
-            fs.mkdirSync(devicesDest, { recursive: true });
-            copyDir(devicesSrc, devicesDest);
-        }
-        
-        // Restore identity
-        restoreStatus.message = 'Restoring identity...';
-        const identitySrc = path.join(extractedDir, 'identity');
-        const identityDest = path.join(OPENCLAW_DIR, 'identity');
-        if (fs.existsSync(identitySrc)) {
-            fs.mkdirSync(identityDest, { recursive: true });
-            copyDir(identitySrc, identityDest);
-        }
-        
-        // Restore memory
-        restoreStatus.message = 'Restoring memory...';
-        const memorySrc = path.join(extractedDir, 'memory');
-        const memoryDest = path.join(OPENCLAW_DIR, 'memory');
-        if (fs.existsSync(memorySrc)) {
-            fs.mkdirSync(memoryDest, { recursive: true });
-            copyDir(memorySrc, memoryDest);
-        }
-        
-        // Restore canvas
-        restoreStatus.message = 'Restoring canvas...';
-        const canvasSrc = path.join(extractedDir, 'canvas');
-        const canvasDest = path.join(OPENCLAW_DIR, 'canvas');
-        if (fs.existsSync(canvasSrc)) {
-            fs.mkdirSync(canvasDest, { recursive: true });
-            copyDir(canvasSrc, canvasDest);
-        }
-        
-        // Restore completions
-        restoreStatus.message = 'Restoring completions...';
-        const completionsSrc = path.join(extractedDir, 'completions');
-        const completionsDest = path.join(OPENCLAW_DIR, 'completions');
-        if (fs.existsSync(completionsSrc)) {
-            fs.mkdirSync(completionsDest, { recursive: true });
-            copyDir(completionsSrc, completionsDest);
-        }
-        
-        // Restore media
-        restoreStatus.message = 'Restoring media...';
-        const mediaSrc = path.join(extractedDir, 'media');
-        const mediaDest = path.join(OPENCLAW_DIR, 'media');
-        if (fs.existsSync(mediaSrc)) {
-            fs.mkdirSync(mediaDest, { recursive: true });
-            copyDir(mediaSrc, mediaDest);
-        }
-        
-        // Restore skills
-        restoreStatus.message = 'Restoring skills...';
-        const skillsSrc = path.join(extractedDir, 'skills');
-        const skillsDest = path.join(OPENCLAW_DIR, 'skills');
-        if (fs.existsSync(skillsSrc)) {
-            fs.mkdirSync(skillsDest, { recursive: true });
-            copyDir(skillsSrc, skillsDest);
-        }
-        
-        // Restore workspace skills
-        const wsSkillsSrc = path.join(extractedDir, 'workspace_skills');
-        const wsSkillsDest = path.join(OPENCLAW_DIR, 'workspace/skills');
-        if (fs.existsSync(wsSkillsSrc)) {
-            fs.mkdirSync(wsSkillsDest, { recursive: true });
-            copyDir(wsSkillsSrc, wsSkillsDest);
-        }
-        
-        // Restore gateway service
         restoreStatus.message = 'Setting up gateway...';
+        log('info', 'Setting up gateway...');
         const currentUser = os.userInfo().username;
         const currentGroup = process.platform === 'darwin' ? 'staff' : currentUser;
         await execPromise(`chown -R ${currentUser}:${currentGroup} ${OPENCLAW_DIR}`);
@@ -436,35 +416,14 @@ async function restoreBackup(filename) {
                     configContent = configContent.replace(/\/home\/[^\/]+/g, os.homedir());
                     configContent = configContent.replace(/\/Users\/[^\/]+/g, os.homedir());
                     fs.writeFileSync(configPath, configContent);
-                    console.log('Updated openclaw.json paths');
+                    log('info', 'Updated openclaw.json paths');
                 }
             } catch (e) {
-                console.log('Failed to update openclaw.json:', e.message);
+                log('error', `Failed to update openclaw.json: ${e.message}`);
             }
         }
         
-        // Update status for gateway setup steps
         try {
-            restoreStatus.message = 'Fixing config paths...';
-            restoreStatus.progress = 92;
-            
-            // Update openclaw.json with correct paths FIRST
-            const configPath = path.join(OPENCLAW_DIR, 'openclaw.json');
-            if (fs.existsSync(configPath)) {
-                try {
-                    let configContent = fs.readFileSync(configPath, 'utf8');
-                    
-                    if (configContent.includes('/home/') || configContent.includes('/Users/')) {
-                        configContent = configContent.replace(/\/home\/[^\/]+/g, os.homedir());
-                        configContent = configContent.replace(/\/Users\/[^\/]+/g, os.homedir());
-                        fs.writeFileSync(configPath, configContent);
-                        console.log('Updated openclaw.json paths');
-                    }
-                } catch (e) {
-                    console.log('Failed to update openclaw.json:', e.message);
-                }
-            }
-            
             restoreStatus.message = 'Running openclaw doctor --fix...';
             restoreStatus.progress = 94;
             await execPromise('openclaw doctor --fix');
@@ -479,7 +438,7 @@ async function restoreBackup(filename) {
                 await execPromise('systemctl --user start openclaw-gateway.service');
             }
         } catch (e) {
-            console.log('Gateway setup skipped:', e.message);
+            log('warn', `Gateway setup skipped: ${e.message}`);
         }
         
         // Sync crontab after restore
@@ -493,7 +452,9 @@ async function restoreBackup(filename) {
         restoreStatus.message = 'Restore completed!';
         restoreStatus.completed = true;
         restoreStatus.inProgress = false;
+        log('info', 'Restore completed successfully');
     } catch (err) {
+        log('error', `Restore failed: ${err.message}`);
         restoreStatus.error = err.message;
         restoreStatus.message = 'Error: ' + err.message;
         restoreStatus.inProgress = false;
@@ -628,7 +589,9 @@ const server = http.createServer(async (req, res) => {
                 } catch (e) {
                     // Use default
                 }
+                log('info', `Starting backup: ${type}`);
                 const filename = await createBackup(type, options);
+                log('info', `Backup completed: ${filename}`);
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ success: true, filename }));
             });
@@ -641,8 +604,9 @@ const server = http.createServer(async (req, res) => {
             req.on('data', chunk => body += chunk);
             req.on('end', async () => {
                 const { filename } = JSON.parse(body);
+                log('info', `Starting restore: ${filename}`);
                 restoreBackup(filename).catch(err => {
-                    console.error('Restore error:', err);
+                    log('error', `Restore failed: ${err.message}`);
                 });
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ success: true, status: restoreStatus }));
@@ -683,28 +647,35 @@ const server = http.createServer(async (req, res) => {
             req.on('end', async () => {
                 const buffer = Buffer.concat(chunks);
                 
-                // Extract filename from multipart form data
                 const contentType = req.headers['content-type'] || '';
                 let originalName = 'uploaded_backup.tar.gz';
+                let fileData = buffer;
                 
                 if (contentType.includes('multipart/form-data')) {
                     const boundary = contentType.split('boundary=')[1];
-                    const body = buffer.toString('binary');
-                    const filenameMatch = body.match(new RegExp('filename="([^"]+)"'));
-                    if (filenameMatch) {
-                        originalName = filenameMatch[1];
+                    if (boundary) {
+                        const parts = parseMultipart(buffer, boundary);
+                        if (parts.length > 0) {
+                            originalName = parts[0].filename;
+                            fileData = parts[0].data;
+                        }
                     }
                 }
                 
-                // Validate it's a tar.gz file
                 if (!originalName.endsWith('.tar.gz')) {
                     res.writeHead(400, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ error: 'Only .tar.gz files allowed' }));
                     return;
                 }
                 
+                if (!isValidGzip(fileData)) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: 'Invalid gzip format' }));
+                    return;
+                }
+                
                 const uploadPath = path.join(BACKUP_DIR, originalName);
-                fs.writeFileSync(uploadPath, buffer);
+                fs.writeFileSync(uploadPath, fileData);
                 
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ success: true, filename: originalName }));
@@ -740,6 +711,21 @@ const server = http.createServer(async (req, res) => {
         if (req.method === 'GET' && pathname === '/api/backup/config') {
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify(config));
+            return;
+        }
+        
+        // GET /api/backup/logs
+        if (req.method === 'GET' && pathname === '/api/backup/logs') {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ logs: eventLog }));
+            return;
+        }
+        
+        // DELETE /api/backup/logs
+        if (req.method === 'DELETE' && pathname === '/api/backup/logs') {
+            eventLog = [];
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true }));
             return;
         }
         
