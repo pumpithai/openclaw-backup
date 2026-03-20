@@ -161,106 +161,11 @@
             color: var(--red);
         }
         
-        .log-entry {
-            padding: 6px 12px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            gap: 10px;
+        .btn-xs {
+            padding: 2px 6px;
+            font-size: 10px;
         }
         
-        .log-entry:last-child {
-            border-bottom: none;
-        }
-        
-        .log-time {
-            color: var(--text-dim);
-            white-space: nowrap;
-        }
-        
-        .log-level {
-            width: 50px;
-            font-weight: 600;
-        }
-        
-        .log-level.info { color: var(--cyan); }
-        .log-level.warn { color: var(--yellow); }
-        .log-level.error { color: var(--red); }
-        
-        .log-message { flex: 1; }
-        
-        .btn-row {
-            display: flex;
-            gap: 12px;
-            margin-top: 16px;
-            flex-wrap: wrap;
-        }
-        
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            margin-top: 16px;
-        }
-        
-        .stat {
-            padding: 12px;
-            background: rgba(255,255,255,0.03);
-            border-radius: 6px;
-            border: 1px solid var(--border);
-        }
-        
-        .stat-label {
-            font-size: 11px;
-            color: var(--text-dim);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        
-        .stat-value {
-            font-size: 20px;
-            font-weight: 600;
-            color: var(--accent);
-            margin-top: 4px;
-        }
-        
-        .backup-list {
-            max-height: 350px;
-            overflow-y: auto;
-        }
-        
-        .backup-list::-webkit-scrollbar { width: 6px; }
-        .backup-list::-webkit-scrollbar-track { background: var(--bg); }
-        .backup-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-        
-        .backup-item {
-            display: flex;
-            align-items: center;
-            padding: 10px 12px;
-            border-bottom: 1px solid var(--border);
-            transition: background 0.2s;
-        }
-        
-        .backup-item:hover { background: rgba(255,255,255,0.03); }
-        .backup-item:last-child { border-bottom: none; }
-        
-        .backup-icon { color: var(--yellow); margin-right: 12px; }
-        
-        .backup-info { flex: 1; min-width: 0; }
-        
-        .backup-name {
-            font-size: 12px;
-            color: var(--text);
-            word-break: break-all;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .backup-meta { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
-        
-        .backup-actions { display: flex; gap: 4px; margin-left: 8px; }
-        
-        .btn-xs { padding: 4px 8px; font-size: 11px; }
         .btn-success { border-color: var(--green); color: var(--green); }
         .btn-success:hover { background: var(--green); color: var(--bg); }
         .btn-info { border-color: var(--cyan); color: var(--cyan); }
@@ -268,106 +173,56 @@
         .btn-danger { border-color: var(--red); color: var(--red); }
         .btn-danger:hover { background: var(--red); color: var(--bg); }
         
-        .radio-group {
+        .log-entry {
+            padding: 5px 8px;
+            border-bottom: 1px solid var(--border);
             display: flex;
-            gap: 16px;
-            margin-bottom: 16px;
+            gap: 8px;
+            font-size: 11px;
+        }
+        
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+        
+        #eventLog::-webkit-scrollbar { width: 6px; }
+        #eventLog::-webkit-scrollbar-track { background: var(--bg); }
+        #eventLog::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        
+        .backup-list::-webkit-scrollbar { width: 6px; }
+        .backup-list::-webkit-scrollbar-track { background: var(--bg); }
+        .backup-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        
+        .log-time {
+            color: var(--text-dim);
+            white-space: nowrap;
+            font-size: 10px;
+            min-width: 65px;
+        }
+        
+        .log-level {
+            width: 40px;
+            font-weight: 600;
+            font-size: 10px;
+        }
+        
+        .log-level.info { color: var(--cyan); }
+        .log-level.warn { color: var(--yellow); }
+        .log-level.error { color: var(--red); }
+        
+        .log-message { 
+            flex: 1; 
+            word-break: break-word;
+            overflow-wrap: break-word;
+            min-width: 0;
+        }
+        
+        .btn-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
             flex-wrap: wrap;
         }
-        
-        .radio-label {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-            font-size: 13px;
-        }
-        
-        .radio-label input { accent-color: var(--accent); }
-        
-        .folder-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 8px;
-            max-height: 180px;
-            overflow-y: auto;
-        }
-        
-        .folder-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 10px;
-            background: rgba(255,255,255,0.03);
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .folder-item:hover { border-color: var(--accent); }
-        .folder-item.selected { border-color: var(--green); background: rgba(166, 227, 161, 0.1); }
-        .folder-item input { accent-color: var(--green); }
-        .folder-name { flex: 1; font-size: 12px; }
-        .folder-size { font-size: 10px; color: var(--text-dim); }
-        
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--text-dim);
-        }
-        
-        .empty-state .icon { font-size: 32px; margin-bottom: 12px; opacity: 0.5; }
-        
-        .toast-container {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 1000;
-        }
-        
-        .toast {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 12px 16px;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            animation: slideIn 0.3s ease;
-            font-size: 13px;
-        }
-        
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        
-        .toast.success { border-color: var(--green); }
-        .toast.success::before { content: '>'; color: var(--green); }
-        .toast.error { border-color: var(--red); }
-        .toast.error::before { content: '>'; color: var(--red); }
-        
-        .progress {
-            height: 4px;
-            background: var(--border);
-            border-radius: 2px;
-            overflow: hidden;
-            margin-top: 12px;
-            display: none;
-        }
-        
-        .progress.show { display: block; }
-        .progress-bar { height: 100%; background: linear-gradient(90deg, var(--accent), var(--green)); width: 0%; transition: width 0.3s; }
-        
-        .pattern-section {
-            margin-top: 16px;
-            padding-top: 16px;
-            border-top: 1px dashed var(--border);
-        }
-        
-        .pattern-section h3 { font-size: 11px; color: var(--yellow); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
         
         .form-group { margin-bottom: 12px; }
         
@@ -417,18 +272,18 @@
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            padding: 4px 8px;
+            padding: 2px 6px;
             background: rgba(137, 180, 250, 0.15);
             border: 1px solid var(--accent);
             border-radius: 4px;
-            font-size: 12px;
+            font-size: 10px;
             color: var(--accent);
         }
         
         .tag .tag-remove {
             cursor: pointer;
             opacity: 0.7;
-            font-size: 14px;
+            font-size: 11px;
             line-height: 1;
         }
         
@@ -441,7 +296,7 @@
             border: none;
             color: var(--text);
             font-family: inherit;
-            font-size: 13px;
+            font-size: 11px;
             outline: none;
         }
         
@@ -476,6 +331,23 @@
         .upload-status.loading { background: rgba(137, 180, 250, 0.1); color: var(--accent); }
         .upload-status.success { background: rgba(166, 227, 161, 0.1); color: var(--green); }
         .upload-status.error { background: rgba(243, 139, 168, 0.1); color: var(--red); }
+        
+        .progress {
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 12px;
+            display: none;
+        }
+        
+        .progress.show { display: block; }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--green));
+            width: 0%;
+            transition: width 0.3s;
+        }
         
         footer {
             margin-top: 40px;
@@ -609,54 +481,137 @@
             display: flex;
             justify-content: flex-end;
         }
+        
+        /* Backup list styling - same as event log */
+        .backup-item {
+            padding: 5px 8px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            font-size: 11px;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+        
+        .backup-item:hover { background: rgba(255,255,255,0.03); }
+        .backup-item:last-child { border-bottom: none; }
+        
+        .backup-time {
+            color: var(--text-dim);
+            white-space: nowrap;
+            font-size: 10px;
+        }
+        
+        .backup-type {
+            width: 45px;
+            font-weight: 600;
+            font-size: 10px;
+            white-space: nowrap;
+        }
+        
+        .backup-type.auto { color: var(--cyan); }
+        .backup-type.manual { color: var(--yellow); }
+        
+        .backup-name {
+            flex: 1;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            min-width: 0;
+            color: var(--text);
+            font-size: 11px;
+        }
+        
+        .backup-size {
+            color: var(--text-dim);
+            white-space: nowrap;
+            font-size: 10px;
+        }
+        
+        .backup-icon { display: none; }
+        .backup-actions { margin-left: auto; }
     </style>
 </head>
-<body>
-    <div class="toast-container" id="toastContainer"></div>
-    
+<body>    
     <div class="container">
-        <header style="display: flex; justify-content: space-between; align-items: center;">
-            <div>
-                <div class="header-title">
-                    <span style="color: var(--accent);">~</span>
-                    <h1>openclaw-backup</h1>
+        <header>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                <div>
+                    <div class="header-title">
+                        <span style="color: var(--accent);">~</span>
+                        <h1>openclaw-backup</h1>
+                    </div>
+                    <div class="header-subtitle" id="hostname">// loading...</div>
                 </div>
-                <div class="header-subtitle" id="hostname">// loading...</div>
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <div style="display: flex; gap: 12px;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px;">backups</div>
+                            <div id="totalBackups" style="font-size: 20px; font-weight: 600; color: var(--accent);">-</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px;">total size</div>
+                            <div id="totalSize" style="font-size: 20px; font-weight: 600; color: var(--accent);">-</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="createBackup()">> run backup</button>
+                </div>
             </div>
-            <div style="display: flex; gap: 10px;">
-                <button class="btn btn-primary" onclick="createBackup()">> run backup</button>
+            <div class="progress" id="progressBar" style="margin-top: 12px;">
+                <div class="progress-bar" id="progressFill"></div>
+                <div class="toast-container" id="toastContainer"></div>
             </div>
         </header>
         
         <div class="grid">
             <!-- Left Column -->
             <div>
-                <!-- Actions Card -->
-                <div class="card" style="height: 195px;">
+                <!-- Upload Card -->
+                <div class="card" style="height: 200px;">
                     <div class="card-header">
                         <div class="dot red"></div>
                         <div class="dot yellow"></div>
                         <div class="dot green"></div>
-                        <h2>stats</h2>
+                        <h2>upload.tar.gz</h2>
                     </div>
                     <div class="card-body">
-                        <div class="progress" id="progressBar">
-                            <div class="progress-bar" id="progressFill"></div>
-                        </div>
-                        
-                        <div class="stats">
-                            <div class="stat">
-                                <div class="stat-label">backups</div>
-                                <div class="stat-value" id="totalBackups">-</div>
+                        <label class="upload-zone" id="uploadZone">
+                            <input type="file" id="uploadInput" accept=".tar.gz" onchange="handleUpload(this.files[0])">
+                            <div class="upload-icon">[+]</div>
+                            <div class="upload-text">
+                                <strong>click to upload</strong><br>
+                                <small>.tar.gz files only</small>
                             </div>
-                            <div class="stat">
-                                <div class="stat-label">total size</div>
-                                <div class="stat-value" id="totalSize">-</div>
-                            </div>
-                        </div>
+                        </label>
+                        <div class="upload-status" id="uploadStatus"></div>
                     </div>
                 </div>
-                
+
+                <!-- Schedule Card -->
+                <div class="card" style="margin-top: 20px;">
+                    <div class="card-header">
+                        <div class="dot red"></div>
+                        <div class="dot yellow"></div>
+                        <div class="dot green"></div>
+                        <h2>schedule.cron</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <input type="text" class="form-input" id="cronInput" placeholder="0 0 * * *">
+                        </div>
+                        <select class="form-input" id="cronPreset" onchange="setCronPreset()">
+                            <option value="">-- presets --</option>
+                            <option value="0 * * * *">hourly</option>
+                            <option value="0 0 * * *">daily</option>
+                            <option value="0 0 * * 0">weekly</option>
+                            <option value="0 0 1 * *">monthly</option>
+                        </select>
+                        <div class="btn-row">
+                            <button class="btn btn-success" onclick="addSchedule()">+ add</button>
+                        </div>
+                        <div id="scheduleList" style="margin-top: 12px;"></div>
+                    </div>
+                </div>
+
                 <!-- Options Card -->
                 <div class="card" style="margin-top: 20px;">
                     <div class="card-header">
@@ -687,66 +642,34 @@
                     </div>
                 </div>
                 
-                <!-- Schedule Card -->
-                <div class="card" style="margin-top: 20px;">
-                    <div class="card-header">
-                        <div class="dot red"></div>
-                        <div class="dot yellow"></div>
-                        <div class="dot green"></div>
-                        <h2>schedule.cron</h2>
-                    </div>
-                    <div class="card-body">
-                        <div class="form-group">
-                            <input type="text" class="form-input" id="cronInput" placeholder="0 0 * * *">
-                        </div>
-                        <select class="form-input" id="cronPreset" onchange="setCronPreset()">
-                            <option value="">-- presets --</option>
-                            <option value="0 * * * *">hourly</option>
-                            <option value="0 0 * * *">daily</option>
-                            <option value="0 0 * * 0">weekly</option>
-                            <option value="0 0 1 * *">monthly</option>
-                        </select>
-                        <div class="btn-row">
-                            <button class="btn btn-success" onclick="addSchedule()">+ add</button>
-                        </div>
-                        <div id="scheduleList" style="margin-top: 12px;"></div>
-                    </div>
-                </div>
             </div>
             
             <!-- Right Column -->
             <div>
-                <!-- Upload Card -->
-                <div class="card" style="height: 195px;">
+                <!-- Event Log Card -->
+                <div class="card" style=" height: 200px;">
                     <div class="card-header">
                         <div class="dot red"></div>
                         <div class="dot yellow"></div>
                         <div class="dot green"></div>
-                        <h2>upload.tar.gz</h2>
+                        <h2>event log</h2>
+                        <button class="btn-icon" onclick="clearLog()" style="margin-left: auto;" title="Clear log">x</button>
                     </div>
-                    <div class="card-body">
-                        <label class="upload-zone" id="uploadZone">
-                            <input type="file" id="uploadInput" accept=".tar.gz" onchange="handleUpload(this.files[0])">
-                            <div class="upload-icon">[+]</div>
-                            <div class="upload-text">
-                                <strong>click to upload</strong><br>
-                                <small>.tar.gz files only</small>
-                            </div>
-                        </label>
-                        <div class="upload-status" id="uploadStatus"></div>
+                    <div class="card-body" style="padding: 0; overflow: hidden;">
+                        <div id="eventLog" style="max-height: 140px; overflow-y: auto; font-size: 11px; line-height: 1.3; overflow-wrap: break-word; word-break: break-word;"></div>
                     </div>
                 </div>
                 
                 <!-- Backups Card -->
-                <div class="card" style="margin-top: 20px;">
+                <div class="card" style="margin-top: 20px; min-height: 660px;">
                     <div class="card-header">
                         <div class="dot red"></div>
                         <div class="dot yellow"></div>
                         <div class="dot green"></div>
                         <h2>backups/</h2>
                     </div>
-                    <div class="card-body" style="padding: 0;">
-                        <div class="backup-list" id="backupList" style="max-height: none; min-height: 590px;">
+                    <div class="card-body" style="padding: 0; overflow: hidden;">
+                        <div class="backup-list" id="backupList" style="max-height: 650px; overflow-y: auto;">
                             <div class="empty-state">
                                 <div class="icon">[ ]</div>
                                 <div>no backups found</div>
@@ -756,20 +679,6 @@
                             <span style="color: var(--text-dim); font-size: 12px;" id="backupInfo"></span>
                             <div id="pagination" style="display: flex; gap: 4px;"></div>
                         </div>
-                    </div>
-                </div>
-                
-                <!-- Event Log Card -->
-                <div class="card" style="margin-top: 20px;">
-                    <div class="card-header">
-                        <div class="dot red"></div>
-                        <div class="dot yellow"></div>
-                        <div class="dot green"></div>
-                        <h2>event log</h2>
-                        <button class="btn-icon" onclick="clearLog()" style="margin-left: auto;" title="Clear log">x</button>
-                    </div>
-                    <div class="card-body" style="padding: 0;">
-                        <div id="eventLog" style="max-height: 150px; overflow-y: auto; font-size: 12px; line-height: 1.4;"></div>
                     </div>
                 </div>
             </div>
@@ -889,8 +798,8 @@
                     const currentScroll = container.scrollTop;
                     const isAtBottom = container.scrollHeight - container.clientHeight - currentScroll < 10;
                     
-                    container.innerHTML = data.logs.map(entry => {
-                        const time = new Date(entry.timestamp).toLocaleTimeString('th-TH');
+                    container.innerHTML = data.logs.slice().reverse().map(entry => {
+                        const time = new Date(entry.timestamp).toLocaleString('th-TH');
                         return `<div class="log-entry">
                             <span class="log-time">${time}</span>
                             <span class="log-level ${entry.level}">${entry.level.toUpperCase()}</span>
@@ -1044,7 +953,7 @@
             page = page || 1;
             currentPage = page;
             try {
-                var res = await fetch(API + '/list?page=' + page + '&limit=10');
+                var res = await fetch(API + '/list?page=' + page + '&limit=20');
                 var data = await res.json();
                 var list = document.getElementById('backupList');
                 document.getElementById('totalBackups').textContent = data.total || 0;
@@ -1077,12 +986,13 @@
                 }
                 
                 list.innerHTML = data.backups.map(function(b) {
+                    var type = (b.type || 'manual').toUpperCase();
+                    var dateStr = b.timestamp ? new Date(b.timestamp).toLocaleString('th-TH') : b.date;
                     return '<div class="backup-item">' +
-                        '<div class="backup-icon">[*]</div>' +
-                        '<div class="backup-info">' +
-                            '<div class="backup-name">' + b.name + '</div>' +
-                            '<div class="backup-meta">' + b.size + ' | ' + b.date + ' | ' + (b.type || 'manual') + '</div>' +
-                        '</div>' +
+                        '<span class="backup-time">' + dateStr + '</span>' +
+                        '<span class="backup-type ' + type.toLowerCase() + '">' + type + '</span>' +
+                        '<span class="backup-name">' + b.name + '</span>' +
+                        '<span class="backup-size">[' + b.size + ']</span>' +
                         '<div class="backup-actions">' +
                             '<button class="btn btn-xs btn-success" onclick="restoreBackup(\'' + b.name + '\')">restore</button>' +
                             '<button class="btn btn-xs btn-info" onclick="downloadBackup(\'' + b.name + '\')">get</button>' +
